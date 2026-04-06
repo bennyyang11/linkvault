@@ -53,7 +53,7 @@ jobs:
       - name: Create release and promote to Unstable
         env:
           REPLICATED_API_TOKEN: ${{ secrets.REPLICATED_API_TOKEN }}
-          REPLICATED_APP: linkvault
+          REPLICATED_APP: linkvault-lynx
         run: |
           replicated release create \
             --yaml-dir release/ \

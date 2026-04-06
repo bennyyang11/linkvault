@@ -1,4 +1,4 @@
-appSlug: linkvault
+appSlug: linkvault-lynx
 charts:
   - path: ./helm/linkvault
 manifests:
