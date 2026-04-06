@@ -14,7 +14,7 @@ spec:
           title: Database
           type: select_one
           default: embedded
-          help_text: Choose Embedded to deploy PostgreSQL inside the cluster. Choose External to connect to your own PostgreSQL instance.
+          help_text: "Choose Embedded to deploy PostgreSQL inside the cluster. Choose External to connect to your own PostgreSQL instance."
           items:
             - name: embedded
               title: Embedded PostgreSQL (recommended)
@@ -25,51 +25,51 @@ spec:
           title: Embedded Database Password
           type: password
           hidden: true
-          value: repl{{ RandomString 32 }}
-          help_text: Auto-generated password for the embedded PostgreSQL instance. This value is preserved across upgrades.
+          value: '{{repl RandomString 32}}'
+          help_text: "Auto-generated password for the embedded PostgreSQL instance. This value is preserved across upgrades."
 
         - name: external_db_host
           title: PostgreSQL Host
           type: text
-          when: repl{{ ConfigOptionEquals "db_type" "external" }}
+          when: '{{repl ConfigOptionEquals "db_type" "external"}}'
           required: true
-          help_text: Hostname or IP address of your PostgreSQL server. Example: db.example.com or 10.0.1.5
+          help_text: "Hostname or IP address of your PostgreSQL server. Example: db.example.com or 10.0.1.5"
 
         - name: external_db_port
           title: PostgreSQL Port
           type: text
           default: "5432"
-          when: repl{{ ConfigOptionEquals "db_type" "external" }}
+          when: '{{repl ConfigOptionEquals "db_type" "external"}}'
           validation:
             regex:
               pattern: "^[0-9]{1,5}$"
-              message: Port must be a number between 1 and 65535. Example: 5432
-          help_text: TCP port your PostgreSQL server listens on. Default is 5432.
+              message: "Port must be a number between 1 and 65535. Example: 5432"
+          help_text: "TCP port your PostgreSQL server listens on. Default is 5432."
 
         - name: external_db_user
           title: PostgreSQL Username
           type: text
           default: postgres
-          when: repl{{ ConfigOptionEquals "db_type" "external" }}
-          help_text: Username for authenticating to PostgreSQL. Must have CREATE TABLE and SELECT/INSERT/UPDATE/DELETE privileges.
+          when: '{{repl ConfigOptionEquals "db_type" "external"}}'
+          help_text: "Username for authenticating to PostgreSQL. Must have CREATE TABLE and SELECT/INSERT/UPDATE/DELETE privileges."
 
         - name: external_db_password
           title: PostgreSQL Password
           type: password
-          when: repl{{ ConfigOptionEquals "db_type" "external" }}
+          when: '{{repl ConfigOptionEquals "db_type" "external"}}'
           required: true
-          help_text: Password for authenticating to your PostgreSQL server.
+          help_text: "Password for authenticating to your PostgreSQL server."
 
         - name: external_db_name
           title: PostgreSQL Database Name
           type: text
           default: linkvault
-          when: repl{{ ConfigOptionEquals "db_type" "external" }}
+          when: '{{repl ConfigOptionEquals "db_type" "external"}}'
           validation:
             regex:
               pattern: "^[a-zA-Z0-9_]+$"
-              message: Database name must contain only letters, numbers, and underscores. Example: linkvault
-          help_text: Name of the PostgreSQL database LinkVault will use. The database must already exist.
+              message: "Database name must contain only letters, numbers, and underscores. Example: linkvault"
+          help_text: "Name of the PostgreSQL database LinkVault will use. The database must already exist."
 
     - name: cache
       title: Cache
@@ -80,7 +80,7 @@ spec:
           title: Redis Cache
           type: select_one
           default: embedded
-          help_text: Choose Embedded to deploy Redis inside the cluster. Choose External to use your own Redis instance. Choose Disabled to run without caching.
+          help_text: "Choose Embedded to deploy Redis inside the cluster. Choose External to use your own Redis instance. Choose Disabled to run without caching."
           items:
             - name: embedded
               title: Embedded Redis (recommended)
@@ -92,26 +92,26 @@ spec:
         - name: external_redis_host
           title: Redis Host
           type: text
-          when: repl{{ ConfigOptionEquals "cache_type" "external" }}
+          when: '{{repl ConfigOptionEquals "cache_type" "external"}}'
           required: true
-          help_text: Hostname or IP address of your Redis server. Example: redis.example.com or 10.0.1.6
+          help_text: "Hostname or IP address of your Redis server. Example: redis.example.com or 10.0.1.6"
 
         - name: external_redis_port
           title: Redis Port
           type: text
           default: "6379"
-          when: repl{{ ConfigOptionEquals "cache_type" "external" }}
+          when: '{{repl ConfigOptionEquals "cache_type" "external"}}'
           validation:
             regex:
               pattern: "^[0-9]{1,5}$"
-              message: Port must be a number. Example: 6379
-          help_text: TCP port your Redis server listens on. Default is 6379.
+              message: "Port must be a number. Example: 6379"
+          help_text: "TCP port your Redis server listens on. Default is 6379."
 
         - name: external_redis_password
           title: Redis Password
           type: password
-          when: repl{{ ConfigOptionEquals "cache_type" "external" }}
-          help_text: Password for authenticating to Redis. Leave blank if your Redis instance does not require a password.
+          when: '{{repl ConfigOptionEquals "cache_type" "external"}}'
+          help_text: "Password for authenticating to Redis. Leave blank if your Redis instance does not require a password."
 
     - name: features
       title: Features
@@ -122,15 +122,15 @@ spec:
           title: Public Collections
           type: bool
           default: "0"
-          when: repl{{ LicenseFieldValue "public_collections" }}
-          help_text: Allow users to create shareable public collection links. When enabled, users can generate a public URL for any collection. Requires a Pro or Enterprise license.
+          when: '{{repl LicenseFieldValue "public_collections"}}'
+          help_text: "Allow users to create shareable public collection links. When enabled, users can generate a public URL for any collection. Requires a Pro or Enterprise license."
 
         - name: enable_search
           title: Full-Text Search
           type: bool
           default: "0"
-          when: repl{{ LicenseFieldValue "search_enabled" }}
-          help_text: Enable full-text search across bookmark titles, URLs, and descriptions. Uses Redis for search result caching. Requires a Pro or Enterprise license.
+          when: '{{repl LicenseFieldValue "search_enabled"}}'
+          help_text: "Enable full-text search across bookmark titles, URLs, and descriptions. Uses Redis for search result caching. Requires a Pro or Enterprise license."
 
         - name: max_import_size
           title: Import File Size Limit
@@ -139,5 +139,5 @@ spec:
           validation:
             regex:
               pattern: "^[0-9]+(KB|MB|GB)$"
-              message: Must be a number followed by KB, MB, or GB. Examples: 5MB, 500KB, 1GB
-          help_text: Maximum file size for bookmark import uploads. Accepts KB, MB, or GB suffixes. Example values: 5MB, 100KB, 1GB.
+              message: "Must be a number followed by KB, MB, or GB. Examples: 5MB, 500KB, 1GB"
+          help_text: "Maximum file size for bookmark import uploads. Accepts KB, MB, or GB suffixes. Example values: 5MB, 100KB, 1GB."

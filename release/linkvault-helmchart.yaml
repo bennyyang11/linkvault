@@ -5,31 +5,31 @@ metadata:
 spec:
   chart:
     name: linkvault
-    chartVersion: 1.0.0
+    chartVersion: 1.1.0
   releaseName: linkvault
   namespace: default
   values:
     ingress:
       enabled: true
     postgresql:
-      enabled: repl{{ ConfigOptionEquals "db_type" "embedded" }}
+      enabled: '{{repl ConfigOptionEquals "db_type" "embedded"}}'
     externalPostgresql:
-      host: repl{{ ConfigOption "external_db_host" }}
-      port: repl{{ ConfigOption "external_db_port" }}
-      user: repl{{ ConfigOption "external_db_user" }}
-      password: repl{{ ConfigOption "external_db_password" }}
-      database: repl{{ ConfigOption "external_db_name" }}
+      host: '{{repl ConfigOption "external_db_host"}}'
+      port: '{{repl ConfigOption "external_db_port"}}'
+      user: '{{repl ConfigOption "external_db_user"}}'
+      password: '{{repl ConfigOption "external_db_password"}}'
+      database: '{{repl ConfigOption "external_db_name"}}'
     redis:
-      enabled: repl{{ ConfigOptionEquals "cache_type" "embedded" }}
+      enabled: '{{repl ConfigOptionEquals "cache_type" "embedded"}}'
     externalRedis:
-      host: repl{{ ConfigOption "external_redis_host" }}
-      port: repl{{ ConfigOption "external_redis_port" }}
-      password: repl{{ ConfigOption "external_redis_password" }}
+      host: '{{repl ConfigOption "external_redis_host"}}'
+      port: '{{repl ConfigOption "external_redis_port"}}'
+      password: '{{repl ConfigOption "external_redis_password"}}'
   optionalValues:
-    - when: repl{{ ConfigOptionEquals "db_type" "embedded" }}
+    - when: '{{repl ConfigOptionEquals "db_type" "embedded"}}'
       recursiveMerge: false
       values:
         postgresql:
           auth:
-            postgresPassword: repl{{ ConfigOption "embedded_db_password" }}
+            postgresPassword: '{{repl ConfigOption "embedded_db_password"}}'
   builder: {}
