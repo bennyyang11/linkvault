@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: proxy.link-vaults.com/proxy/linkvault-lynx/index.docker.io/bennyyang11/linkvault
+  repository: proxy.link-vaults.com/proxy/linkvault-lynx/docker.io/bennyyang11/linkvault
   tag: "1.0.0"
   pullPolicy: IfNotPresent
 
@@ -20,14 +20,11 @@ ingress:
   annotations: {}
   tls:
     enabled: false
-    # Option 1: cert-manager auto-provisioned certificate
     certManager:
       enabled: false
       issuerName: "letsencrypt-prod"
       issuerKind: "ClusterIssuer"
-    # Option 2: manually uploaded certificate — set secretName to the k8s Secret name
     secretName: ""
-    # Option 3: self-signed (set to true, no certManager or secretName needed)
     selfSigned: false
 
 config:
@@ -36,10 +33,11 @@ config:
   updateCheckIntervalSeconds: "300"
 
 # --- Embedded PostgreSQL (Bitnami subchart) ---
-# Set enabled: false and fill externalPostgresql to use your own database
 postgresql:
   enabled: true
   image:
+    registry: proxy.link-vaults.com
+    repository: proxy/linkvault-lynx/docker.io/bitnami/postgresql
     tag: "16"
   auth:
     postgresPassword: "linkvault-default-pw"
@@ -48,34 +46,39 @@ postgresql:
     persistence:
       size: 1Gi
 
-# BYO PostgreSQL — used only when postgresql.enabled=false
+# BYO PostgreSQL
 externalPostgresql:
   host: ""
   port: "5432"
   user: "postgres"
   password: ""
   database: "linkvault"
-  existingSecret: ""      # name of a k8s Secret with key "postgres-password"
+  existingSecret: ""
 
 # --- Embedded Redis (Bitnami subchart) ---
-# Set enabled: false and fill externalRedis to use your own Redis
 redis:
   enabled: true
   architecture: standalone
+  image:
+    registry: proxy.link-vaults.com
+    repository: proxy/linkvault-lynx/docker.io/bitnami/redis
+    tag: "7.4.1-debian-12-r3"
   auth:
     enabled: false
   master:
     persistence:
       enabled: false
 
-# BYO Redis — used only when redis.enabled=false
+# BYO Redis
 externalRedis:
   host: ""
   port: "6379"
   password: ""
-  existingSecret: ""      # name of a k8s Secret with key "redis-password"
+  existingSecret: ""
 
-# --- Replicated SDK (alias: linkvault-sdk) ---
+# --- Global settings ---
 global:
+  imagePullSecrets:
+    - enterprise-pull-secret
   replicated:
     licenseID: ""
