@@ -46,7 +46,6 @@ jobs:
 
       - name: Package Helm chart
         run: |
-          helm dependency update helm/linkvault/
           rm -f release/linkvault-*.tgz
           helm package helm/linkvault/ -d release/
 
