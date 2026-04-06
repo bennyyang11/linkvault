@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkVault</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                    colors: {
+                        brand: { 50:'#eff6ff', 100:'#dbeafe', 500:'#3b82f6', 600:'#2563eb', 700:'#1d4ed8' }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        [x-cloak] { display: none; }
+        .bookmark-card:hover .delete-btn { opacity: 1; }
+        .delete-btn { opacity: 0; transition: opacity 0.15s; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+        input:focus, select:focus, textarea:focus { outline: none; }
+    </style>
+</head>
+<body class="h-full bg-slate-50 font-sans text-slate-900 antialiased">
+
+    <!-- Update Banner -->
+    <div id="update-banner" class="hidden bg-brand-600 text-white text-sm text-center py-2 px-4 cursor-pointer hover:bg-brand-700 transition-colors">
+        <span id="update-text"></span>
+    </div>
+
+    <!-- Expiry Warning Banner -->
+    <div id="expiry-banner" class="hidden bg-amber-50 border-b border-amber-200 text-amber-800 text-sm text-center py-2 px-4">
+        <span id="expiry-text"></span>
+    </div>
+
+    <!-- License Expired Overlay -->
+    <div id="expired-overlay" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl p-10 text-center max-w-sm mx-4">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H9m3-3a3 3 0 100-6 3 3 0 000 6z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 11V7a5 5 0 00-10 0v4"/></svg>
+            </div>
+            <h2 class="text-xl font-semibold text-slate-900 mb-2">License Expired</h2>
+            <p class="text-slate-500 text-sm">Your LinkVault license has expired. Contact your administrator to renew.</p>
+        </div>
+    </div>
+
+    <!-- App Shell -->
+    <div class="flex h-screen overflow-hidden flex-col">
+
+        <!-- Header -->
+        <header class="flex-shrink-0 bg-white border-b border-slate-200 px-4 flex items-center justify-between h-14 z-10">
+            <div class="flex items-center gap-2">
+                <div class="w-7 h-7 bg-brand-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                </div>
+                <span class="font-semibold text-slate-900">LinkVault</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="showAddModal()" class="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                    Add Bookmark
+                </button>
+                <button onclick="toggleAdmin()" class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors" title="Settings">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden">
+
+            <!-- Sidebar -->
+            <aside class="w-56 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col overflow-hidden">
+                <div class="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-5">
+
+                    <!-- Bookmarks nav -->
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-2 mb-1">Library</p>
+                        <div id="tag-list" class="space-y-0.5"></div>
+                    </div>
+
+                    <!-- Collections -->
+                    <div>
+                        <div class="flex items-center justify-between px-2 mb-1">
+                            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Collections</p>
+                            <button onclick="showCollectionModal()" class="text-slate-400 hover:text-brand-600 transition-colors" title="New collection">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                            </button>
+                        </div>
+                        <div id="collection-list" class="space-y-0.5"></div>
+                    </div>
+                </div>
+
+                <!-- Admin panel (hidden by default) -->
+                <div id="admin-panel" class="hidden border-t border-slate-200 p-3">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Admin</p>
+                    <div id="license-info"></div>
+                    <button onclick="generateSupportBundle()" class="mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                        Support Bundle
+                    </button>
+                    <div id="bundle-status" class="hidden mt-2 text-xs text-center text-slate-500 bg-slate-50 rounded-lg py-1.5"></div>
+                </div>
+            </aside>
+
+            <!-- Main content -->
+            <main class="flex-1 overflow-y-auto">
+                <div class="max-w-3xl mx-auto p-6">
+
+                    <!-- Search bar -->
+                    <div class="relative mb-5">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+                        <input id="search-input" type="text" placeholder="Search bookmarks..." oninput="handleSearch(this.value)"
+                            class="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all shadow-sm">
+                        <div id="search-disabled" class="hidden absolute inset-0 bg-slate-50/90 rounded-xl flex items-center justify-center cursor-pointer" onclick="showUpgradeToast('search')">
+                            <span class="text-xs text-slate-400 flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H9m3-3a3 3 0 100-6 3 3 0 000 6z"/></svg>
+                                Search requires Pro plan
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Bookmark list -->
+                    <div id="bookmark-list" class="space-y-2"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add Bookmark Modal -->
+    <div id="add-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div class="flex items-center justify-between p-5 border-b border-slate-100">
+                <h2 class="font-semibold text-slate-900">Add Bookmark</h2>
+                <button onclick="closeModal('add-modal')" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <form onsubmit="handleAddBookmark(event)" class="p-5 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">URL</label>
+                    <input id="add-url" type="text" placeholder="https://example.com" required
+                        class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Tags <span class="text-slate-400 font-normal">— comma separated</span></label>
+                    <input id="add-tags" type="text" placeholder="dev, tools, design"
+                        class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Collection <span class="text-slate-400 font-normal">— optional</span></label>
+                    <select id="add-collection" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 bg-white transition-all">
+                        <option value="">None</option>
+                    </select>
+                </div>
+                <div class="flex gap-3 pt-1">
+                    <button type="button" onclick="closeModal('add-modal')" class="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Cancel</button>
+                    <button type="submit" id="add-submit" class="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors disabled:opacity-60">Save Bookmark</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- New Collection Modal -->
+    <div id="collection-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div class="flex items-center justify-between p-5 border-b border-slate-100">
+                <h2 class="font-semibold text-slate-900">New Collection</h2>
+                <button onclick="closeModal('collection-modal')" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <form onsubmit="handleAddCollection(event)" class="p-5 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Name</label>
+                    <input id="col-name" type="text" placeholder="My Collection" required
+                        class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Description <span class="text-slate-400 font-normal">— optional</span></label>
+                    <input id="col-desc" type="text" placeholder="A set of useful links"
+                        class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all">
+                </div>
+                <div class="flex gap-3 pt-1">
+                    <button type="button" onclick="closeModal('collection-modal')" class="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Cancel</button>
+                    <button type="submit" class="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="hidden fixed bottom-5 right-5 z-50 flex items-center gap-2 bg-slate-900 text-white text-sm px-4 py-3 rounded-xl shadow-lg max-w-sm">
+        <span id="toast-text"></span>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
