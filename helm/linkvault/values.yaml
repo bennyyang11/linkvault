@@ -1,0 +1,81 @@
+replicaCount: 1
+
+image:
+  repository: proxy.linkvault.dev/proxy/linkvault/registry-1.docker.io/bennyyang11/linkvault
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 8080
+  nodePort: ""
+
+ingress:
+  enabled: false
+  host: ""
+  className: nginx
+  annotations: {}
+  tls:
+    enabled: false
+    # Option 1: cert-manager auto-provisioned certificate
+    certManager:
+      enabled: false
+      issuerName: "letsencrypt-prod"
+      issuerKind: "ClusterIssuer"
+    # Option 2: manually uploaded certificate — set secretName to the k8s Secret name
+    secretName: ""
+    # Option 3: self-signed (set to true, no certManager or secretName needed)
+    selfSigned: false
+
+config:
+  pollIntervalSeconds: "10"
+  reportIntervalSeconds: "60"
+  updateCheckIntervalSeconds: "300"
+
+# --- Embedded PostgreSQL (Bitnami subchart) ---
+# Set enabled: false and fill externalPostgresql to use your own database
+postgresql:
+  enabled: true
+  image:
+    tag: "16"
+  auth:
+    postgresPassword: "linkvault-default-pw"
+    database: "linkvault"
+  primary:
+    persistence:
+      size: 1Gi
+
+# BYO PostgreSQL — used only when postgresql.enabled=false
+externalPostgresql:
+  host: ""
+  port: "5432"
+  user: "postgres"
+  password: ""
+  database: "linkvault"
+  existingSecret: ""      # name of a k8s Secret with key "postgres-password"
+
+# --- Embedded Redis (Bitnami subchart) ---
+# Set enabled: false and fill externalRedis to use your own Redis
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+  master:
+    persistence:
+      enabled: false
+
+# BYO Redis — used only when redis.enabled=false
+externalRedis:
+  host: ""
+  port: "6379"
+  password: ""
+  existingSecret: ""      # name of a k8s Secret with key "redis-password"
+
+# --- Replicated SDK (alias: linkvault-sdk) ---
+global:
+  replicated:
+    licenseID: ""

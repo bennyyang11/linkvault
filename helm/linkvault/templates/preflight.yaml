@@ -1,0 +1,127 @@
+{{- if .Capabilities.APIVersions.Has "troubleshoot.sh/v1beta2" }}
+apiVersion: troubleshoot.sh/v1beta2
+kind: Preflight
+metadata:
+  name: {{ include "linkvault.fullname" . }}
+spec:
+  collectors:
+    - clusterResources: {}
+    {{- if and (not .Values.postgresql.enabled) .Values.externalPostgresql.host }}
+    - exec:
+        name: external-db-check
+        selector:
+          - app.kubernetes.io/name={{ include "linkvault.name" . }}
+        command: ["sh", "-c"]
+        args:
+          - "nc -z -w5 {{ .Values.externalPostgresql.host }} {{ .Values.externalPostgresql.port | default `5432` }} && echo reachable || echo unreachable"
+        timeout: 15s
+    {{- end }}
+
+  analyzers:
+
+    # CHECK 1: External database connectivity (only runs when BYO DB is configured)
+    {{- if and (not .Values.postgresql.enabled) .Values.externalPostgresql.host }}
+    - textAnalyze:
+        checkName: External Database Connectivity
+        fileName: external-db-check/external-db-check.log
+        regex: 'reachable'
+        outcomes:
+          - fail:
+              when: "false"
+              message: |
+                Cannot reach external PostgreSQL at {{ .Values.externalPostgresql.host }}:{{ .Values.externalPostgresql.port | default "5432" }}.
+                Verify the hostname is correct, port {{ .Values.externalPostgresql.port | default "5432" }} is open, and no firewall rules block traffic from this cluster.
+          - pass:
+              when: "true"
+              message: External PostgreSQL at {{ .Values.externalPostgresql.host }} is reachable.
+    {{- end }}
+
+    # CHECK 2: Required external endpoint — Replicated API connectivity
+    - clusterVersion:
+        outcomes:
+          - pass:
+              when: ">= 1.0.0"
+              message: Cluster API is reachable.
+
+    # CHECK 3: Cluster CPU
+    - nodeResources:
+        checkName: Cluster CPU
+        outcomes:
+          - fail:
+              when: "sum(cpuAllocatable) < 2"
+              message: |
+                The cluster has less than 2 allocatable CPU cores.
+                LinkVault with embedded PostgreSQL and Redis requires at least 2 cores.
+                Add nodes or increase the size of existing nodes before installing.
+          - warn:
+              when: "sum(cpuAllocatable) < 4"
+              message: The cluster has fewer than 4 allocatable CPU cores. Performance may be limited under load.
+          - pass:
+              when: "sum(cpuAllocatable) >= 2"
+              message: Cluster has sufficient CPU.
+
+    # CHECK 3b: Cluster Memory
+    - nodeResources:
+        checkName: Cluster Memory
+        outcomes:
+          - fail:
+              when: "sum(memoryAllocatable) < 2Gi"
+              message: |
+                The cluster has less than 2Gi of allocatable memory.
+                LinkVault requires at least 2Gi to run the application, PostgreSQL, and Redis.
+                Add nodes or increase node memory before installing.
+          - warn:
+              when: "sum(memoryAllocatable) < 4Gi"
+              message: The cluster has less than 4Gi allocatable memory. Consider adding resources for production workloads.
+          - pass:
+              when: "sum(memoryAllocatable) >= 2Gi"
+              message: Cluster has sufficient memory.
+
+    # CHECK 4: Kubernetes version
+    - clusterVersion:
+        checkName: Kubernetes Version
+        outcomes:
+          - fail:
+              when: "< 1.25.0"
+              message: |
+                Kubernetes version is below 1.25.0. LinkVault requires 1.25.0 or later.
+                Upgrade your cluster before proceeding. See https://kubernetes.io/docs/tasks/administer-cluster/cluster-upgrade/
+          - pass:
+              when: ">= 1.25.0"
+              message: Kubernetes version is compatible.
+
+    # CHECK 5: Unsupported distributions
+    - distribution:
+        checkName: Kubernetes Distribution
+        outcomes:
+          - fail:
+              when: "== docker-desktop"
+              message: |
+                Docker Desktop is not a supported Kubernetes distribution for LinkVault production installs.
+                Please use a supported distribution such as EKS, GKE, AKS, k3s, or RKE2.
+                See https://docs.linkvault.dev/supported-platforms for the full list.
+          - fail:
+              when: "== microk8s"
+              message: |
+                MicroK8s is not a supported Kubernetes distribution for LinkVault.
+                Please use a supported distribution such as EKS, GKE, AKS, k3s, or RKE2.
+                See https://docs.linkvault.dev/supported-platforms for the full list.
+          - pass:
+              message: Kubernetes distribution is supported.
+
+    # Storage class (required for PostgreSQL PVC)
+    {{- if .Values.postgresql.enabled }}
+    - storageClass:
+        checkName: Default Storage Class
+        outcomes:
+          - fail:
+              when: "= 0"
+              message: |
+                No default storage class found in the cluster.
+                LinkVault requires a default storage class for PostgreSQL data persistence.
+                Create a storage class and mark it as default, or set postgresql.primary.persistence.storageClass in your values.
+          - pass:
+              when: ">= 1"
+              message: Default storage class is available.
+    {{- end }}
+{{- end }}

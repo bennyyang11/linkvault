@@ -1,0 +1,135 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "linkvault.fullname" . }}
+  labels:
+    {{- include "linkvault.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "linkvault.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "linkvault.selectorLabels" . | nindent 8 }}
+    spec:
+      imagePullSecrets:
+        - name: enterprise-pull-secret
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Waiting for PostgreSQL at {{ include "linkvault.postgresHost" . }}:{{ include "linkvault.postgresPort" . }}..."
+              until nc -z -w3 {{ include "linkvault.postgresHost" . }} {{ include "linkvault.postgresPort" . }}; do
+                echo "PostgreSQL not ready, retrying in 3s..."
+                sleep 3
+              done
+              echo "PostgreSQL is ready"
+          resources:
+            requests:
+              cpu: 5m
+              memory: 8Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+        {{- if or .Values.redis.enabled .Values.externalRedis.host }}
+        - name: wait-for-redis
+          image: busybox:1.36
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Waiting for Redis at {{ include "linkvault.redisAddr" . }}..."
+              until nc -z -w3 {{ if .Values.redis.enabled }}{{ include "linkvault.fullname" . }}-redis-master{{ else }}{{ .Values.externalRedis.host }}{{ end }} {{ if .Values.redis.enabled }}6379{{ else }}{{ .Values.externalRedis.port | default "6379" }}{{ end }}; do
+                echo "Redis not ready, retrying in 3s..."
+                sleep 3
+              done
+              echo "Redis is ready"
+          resources:
+            requests:
+              cpu: 5m
+              memory: 8Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+        {{- end }}
+      containers:
+        - name: linkvault
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            # --- PostgreSQL ---
+            - name: PGHOST
+              value: {{ include "linkvault.postgresHost" . | quote }}
+            - name: PGPORT
+              value: {{ include "linkvault.postgresPort" . | quote }}
+            {{- if .Values.postgresql.enabled }}
+            - name: PGUSER
+              value: "postgres"
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "linkvault.fullname" . }}-postgresql
+                  key: postgres-password
+            - name: PGDATABASE
+              value: {{ .Values.postgresql.auth.database | quote }}
+            {{- else }}
+            - name: PGUSER
+              value: {{ .Values.externalPostgresql.user | quote }}
+            - name: PGDATABASE
+              value: {{ .Values.externalPostgresql.database | quote }}
+            - name: PGPASSWORD
+              {{- if .Values.externalPostgresql.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalPostgresql.existingSecret }}
+                  key: postgres-password
+              {{- else }}
+              value: {{ .Values.externalPostgresql.password | quote }}
+              {{- end }}
+            {{- end }}
+            # --- Redis ---
+            - name: REDIS_ADDR
+              value: {{ include "linkvault.redisAddr" . | quote }}
+            {{- if and (not .Values.redis.enabled) .Values.externalRedis.existingSecret }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalRedis.existingSecret }}
+                  key: redis-password
+            {{- else if and (not .Values.redis.enabled) .Values.externalRedis.password }}
+            - name: REDIS_PASSWORD
+              value: {{ .Values.externalRedis.password | quote }}
+            {{- end }}
+            # --- App config ---
+            - name: LISTEN_ADDR
+              value: ":8080"
+            - name: REPLICATED_SDK_ADDRESS
+              value: "http://{{ include "linkvault.fullname" . }}-linkvault-sdk:3000"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

@@ -1,0 +1,36 @@
+LinkVault has been deployed!
+
+  Chart version:  {{ .Chart.Version }}
+  App version:    {{ .Chart.AppVersion }}
+  Release name:   {{ .Release.Name }}
+  Namespace:      {{ .Release.Namespace }}
+
+{{- if .Values.ingress.enabled }}
+Access the application at:
+  https://{{ .Values.ingress.host }}
+{{- else if eq .Values.service.type "NodePort" }}
+Access the application via NodePort:
+  export NODE_IP=$(kubectl get nodes -o jsonpath="{.items[0].status.addresses[0].address}")
+  export NODE_PORT=$(kubectl get svc {{ include "linkvault.fullname" . }} -n {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}")
+  echo "http://$NODE_IP:$NODE_PORT"
+{{- else }}
+Forward the port to access locally:
+  kubectl port-forward svc/{{ include "linkvault.fullname" . }} 8080:{{ .Values.service.port }} -n {{ .Release.Namespace }}
+  Then open http://localhost:8080
+{{- end }}
+
+Database:
+{{- if .Values.postgresql.enabled }}
+  Embedded PostgreSQL is running as {{ include "linkvault.fullname" . }}-postgresql
+{{- else }}
+  Using external PostgreSQL at {{ .Values.externalPostgresql.host }}:{{ .Values.externalPostgresql.port }}
+{{- end }}
+
+Cache:
+{{- if .Values.redis.enabled }}
+  Embedded Redis is running as {{ include "linkvault.fullname" . }}-redis-master
+{{- else if .Values.externalRedis.host }}
+  Using external Redis at {{ .Values.externalRedis.host }}:{{ .Values.externalRedis.port }}
+{{- else }}
+  Redis is disabled — search caching will be inactive
+{{- end }}
