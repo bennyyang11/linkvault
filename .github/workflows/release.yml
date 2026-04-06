@@ -45,7 +45,7 @@ jobs:
         continue-on-error: true
 
       - name: Re-checkout after Trivy
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Package Helm chart
         run: |
