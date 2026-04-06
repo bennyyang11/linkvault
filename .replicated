@@ -1,0 +1,5 @@
+appSlug: linkvault
+charts:
+  - path: ./helm/linkvault
+manifests:
+  - ./release/*.yaml

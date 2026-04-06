@@ -1,0 +1,59 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Build
+        run: go build ./...
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Helm lint
+        run: |
+          helm dependency update helm/linkvault/
+          helm lint helm/linkvault/
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Build and push PR image
+        run: |
+          docker build -t bennyyang11/linkvault:pr-${{ github.event.pull_request.number }} .
+          docker push bennyyang11/linkvault:pr-${{ github.event.pull_request.number }}
+
+      - name: Install Replicated CLI
+        run: |
+          curl -s https://api.github.com/repos/replicatedhq/replicated/releases/latest \
+            | grep "browser_download_url.*linux_amd64.tar.gz" \
+            | cut -d '"' -f 4 \
+            | xargs curl -Ls -o replicated.tar.gz
+          tar xf replicated.tar.gz replicated
+          sudo mv replicated /usr/local/bin/replicated
+
+      - name: Create test release on Unstable
+        env:
+          REPLICATED_API_TOKEN: ${{ secrets.REPLICATED_API_TOKEN }}
+          REPLICATED_APP: linkvault
+        run: |
+          helm dependency update helm/linkvault/
+          helm package helm/linkvault/ -d release/
+          replicated release create \
+            --yaml-dir release/ \
+            --promote Unstable \
+            --version pr-${{ github.event.pull_request.number }}

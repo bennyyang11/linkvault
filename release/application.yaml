@@ -1,0 +1,19 @@
+apiVersion: kots.io/v1beta1
+kind: Application
+metadata:
+  name: linkvault
+spec:
+  title: LinkVault
+  icon: https://raw.githubusercontent.com/bennyyang11/linkvault/main/assets/icon.png
+  releaseNotes: ""
+  allowRollback: true
+  statusInformers:
+    - deployment/linkvault
+    - statefulset/linkvault-postgresql
+    - deployment/linkvault-redis-master
+    - deployment/linkvault-linkvault-sdk
+  ports:
+    - serviceName: linkvault
+      servicePort: 8080
+      localPort: 8080
+      applicationUrl: "http://linkvault"
