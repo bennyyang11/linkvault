@@ -33,9 +33,11 @@ config:
   updateCheckIntervalSeconds: "300"
 
 # --- Embedded PostgreSQL (Bitnami subchart) ---
-# Don't override image registry — let the subchart use its own defaults
 postgresql:
   enabled: true
+  image:
+    registry: public.ecr.aws
+    repository: bitnami/postgresql
   auth:
     postgresPassword: "linkvault-default-pw"
     database: "linkvault"
@@ -53,10 +55,12 @@ externalPostgresql:
   existingSecret: ""
 
 # --- Embedded Redis (Bitnami subchart) ---
-# Don't override image registry — let the subchart use its own defaults
 redis:
   enabled: true
   architecture: standalone
+  image:
+    registry: public.ecr.aws
+    repository: bitnami/redis
   auth:
     enabled: false
   master:
