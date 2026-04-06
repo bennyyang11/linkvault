@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: proxy.link-vaults.com/proxy/linkvault-lynx/index.docker.io/bennyyang11/linkvault
+  repository: proxy.replicated.com/proxy/linkvault-lynx/index.docker.io/bennyyang11/linkvault
   tag: "v1.0.0"
   pullPolicy: IfNotPresent
 
@@ -33,12 +33,9 @@ config:
   updateCheckIntervalSeconds: "300"
 
 # --- Embedded PostgreSQL (Bitnami subchart) ---
+# Don't override image registry — let the subchart use its own defaults
 postgresql:
   enabled: true
-  image:
-    registry: proxy.link-vaults.com
-    repository: proxy/linkvault-lynx/index.docker.io/bitnami/postgresql
-    tag: "16"
   auth:
     postgresPassword: "linkvault-default-pw"
     database: "linkvault"
@@ -56,13 +53,10 @@ externalPostgresql:
   existingSecret: ""
 
 # --- Embedded Redis (Bitnami subchart) ---
+# Don't override image registry — let the subchart use its own defaults
 redis:
   enabled: true
   architecture: standalone
-  image:
-    registry: proxy.link-vaults.com
-    repository: proxy/linkvault-lynx/index.docker.io/bitnami/redis
-    tag: "7.4.1-debian-12-r3"
   auth:
     enabled: false
   master:
