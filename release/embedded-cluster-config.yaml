@@ -3,8 +3,7 @@ kind: Config
 spec:
   version: ""
   domains:
-    replicatedAppDomain: get.linkvault.dev
-    proxyRegistryDomain: proxy.linkvault.dev
+    proxyRegistryDomain: proxy.link-vaults.com
   unsupportedOverrides:
     kubelet:
       maxPods: 110

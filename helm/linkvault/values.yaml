@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: proxy.linkvault.dev/proxy/linkvault/registry-1.docker.io/bennyyang11/linkvault
+  repository: proxy.link-vaults.com/proxy/linkvault-lynx/index.docker.io/bennyyang11/linkvault
   tag: "1.0.0"
   pullPolicy: IfNotPresent
 
