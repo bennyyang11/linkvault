@@ -6,7 +6,7 @@ image:
   pullPolicy: IfNotPresent
 
 initImage:
-  repository: proxy.link-vaults.com/proxy/linkvault-lynx/library/busybox
+  repository: proxy.link-vaults.com/proxy/linkvault-lynx/busybox
   tag: "1.36"
 
 nameOverride: ""
