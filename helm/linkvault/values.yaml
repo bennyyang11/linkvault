@@ -41,7 +41,7 @@ postgresql:
   enabled: true
   image:
     registry: proxy.link-vaults.com
-    repository: proxy/linkvault-lynx/public.ecr.aws/bitnami/postgresql
+    repository: proxy/linkvault-lynx/index.docker.io/bitnami/postgresql
   auth:
     postgresPassword: "linkvault-default-pw"
     database: "linkvault"
@@ -64,7 +64,7 @@ redis:
   architecture: standalone
   image:
     registry: proxy.link-vaults.com
-    repository: proxy/linkvault-lynx/public.ecr.aws/bitnami/redis
+    repository: proxy/linkvault-lynx/index.docker.io/bitnami/redis
   auth:
     enabled: false
   master:
