@@ -62,8 +62,10 @@ func (c *Checker) refresh() {
 	}
 	defer resp.Body.Close()
 
-	var result []struct {
+	var result map[string]struct {
 		Name  string          `json:"name"`
+		Title string          `json:"title"`
+		Type  string          `json:"type"`
 		Value json.RawMessage `json:"value"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -76,9 +78,8 @@ func (c *Checker) refresh() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	for _, f := range result {
-		raw := string(f.Value)
-		switch f.Name {
+	for key, f := range result {
+		switch key {
 		case "max_bookmarks":
 			json.Unmarshal(f.Value, &c.fields.MaxBookmarks)
 		case "feature_tier":
@@ -90,7 +91,7 @@ func (c *Checker) refresh() {
 		case "import_export":
 			json.Unmarshal(f.Value, &c.fields.ImportExport)
 		case "expires_at":
-			c.fields.ExpiresAt = raw
+			json.Unmarshal(f.Value, &c.fields.ExpiresAt)
 		}
 	}
 	c.loaded = true
