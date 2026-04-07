@@ -14,7 +14,7 @@ jobs:
         id: version
         run: |
           CHART_VERSION=$(grep '^version:' helm/linkvault/Chart.yaml | awk '{print $2}')
-          echo "version=${CHART_VERSION}-$(date +%Y%m%d).$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "version=${CHART_VERSION}" >> $GITHUB_OUTPUT
 
       - name: Set up Helm
         uses: azure/setup-helm@v5
