@@ -2,8 +2,8 @@ apiVersion: v2
 name: linkvault
 description: A bookmark manager with tagging, collections, and public sharing
 type: application
-version: 2.1.2
-appVersion: "2.1.2"
+version: 2.1.4
+appVersion: "2.1.4"
 
 dependencies:
   - name: postgresql
