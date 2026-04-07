@@ -2,8 +2,7 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches: [main]
 
 jobs:
   release:
@@ -11,17 +10,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Set version
+        id: version
+        run: echo "version=$(date +%Y%m%d)-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       - name: Set up Helm
         uses: azure/setup-helm@v5
-
-      - name: Install Replicated CLI
-        run: |
-          curl -s https://api.github.com/repos/replicatedhq/replicated/releases/latest \
-            | grep "browser_download_url.*linux_amd64.tar.gz" \
-            | cut -d '"' -f 4 \
-            | xargs curl -Ls -o replicated.tar.gz
-          tar xf replicated.tar.gz replicated
-          sudo mv replicated /usr/local/bin/replicated
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -31,13 +25,13 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build -t bennyyang11/linkvault:${{ github.ref_name }} .
-          docker push bennyyang11/linkvault:${{ github.ref_name }}
+          docker build -t bennyyang11/linkvault:${{ steps.version.outputs.version }} .
+          docker push bennyyang11/linkvault:${{ steps.version.outputs.version }}
 
       - name: Scan Docker image for CVEs
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: bennyyang11/linkvault:${{ github.ref_name }}
+          image-ref: bennyyang11/linkvault:${{ steps.version.outputs.version }}
           format: table
           exit-code: '1'
           severity: CRITICAL,HIGH
@@ -50,14 +44,14 @@ jobs:
       - name: Package Helm chart
         run: |
           rm -f release/linkvault-*.tgz
+          helm dependency update helm/linkvault/
           helm package helm/linkvault/ -d release/
 
       - name: Create release and promote to Unstable
-        env:
-          REPLICATED_API_TOKEN: ${{ secrets.REPLICATED_API_TOKEN }}
-          REPLICATED_APP: linkvault-lynx
-        run: |
-          replicated release create \
-            --yaml-dir release/ \
-            --promote Unstable \
-            --version ${GITHUB_REF_NAME#v}
+        uses: replicatedhq/replicated-actions/create-release@v1
+        with:
+          app-slug: linkvault-lynx
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          yaml-dir: release/
+          promote-channel: Unstable
+          version: ${{ steps.version.outputs.version }}

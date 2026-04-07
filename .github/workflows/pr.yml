@@ -23,3 +23,28 @@ jobs:
 
       - name: Helm lint
         run: helm lint helm/linkvault/
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t bennyyang11/linkvault:pr-${{ github.event.pull_request.number }} .
+          docker push bennyyang11/linkvault:pr-${{ github.event.pull_request.number }}
+
+      - name: Package Helm chart
+        run: |
+          helm dependency update helm/linkvault/
+          helm package helm/linkvault/ -d release/
+
+      - name: Create test release
+        uses: replicatedhq/replicated-actions/create-release@v1
+        with:
+          app-slug: linkvault-lynx
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          yaml-dir: release/
+          promote-channel: Unstable
+          version: pr-${{ github.event.pull_request.number }}
