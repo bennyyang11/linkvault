@@ -1,12 +1,12 @@
 replicaCount: 1
 
 image:
-  repository: proxy.link-vaults.com/proxy/linkvault-lynx/index.docker.io/bennyyang11/linkvault
+  repository: proxy.link-vaults.com/proxy/linkvault-lynx/bennyyang11/linkvault
   tag: "v1.0.0"
   pullPolicy: IfNotPresent
 
 initImage:
-  repository: proxy.link-vaults.com/proxy/linkvault-lynx/registry-1.docker.io/library/busybox
+  repository: proxy.link-vaults.com/proxy/linkvault-lynx/library/busybox
   tag: "1.36"
 
 nameOverride: ""
@@ -41,7 +41,7 @@ postgresql:
   enabled: true
   image:
     registry: proxy.link-vaults.com
-    repository: proxy/linkvault-lynx/index.docker.io/bitnami/postgresql
+    repository: proxy/linkvault-lynx/bitnami/postgresql
   auth:
     postgresPassword: "linkvault-default-pw"
     database: "linkvault"
@@ -64,7 +64,7 @@ redis:
   architecture: standalone
   image:
     registry: proxy.link-vaults.com
-    repository: proxy/linkvault-lynx/index.docker.io/bitnami/redis
+    repository: proxy/linkvault-lynx/bitnami/redis
   auth:
     enabled: false
   master:
