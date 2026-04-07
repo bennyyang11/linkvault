@@ -5,7 +5,7 @@ metadata:
 spec:
   chart:
     name: linkvault
-    chartVersion: 2.1.4
+    chartVersion: 2.2.0
   releaseName: linkvault
   namespace: default
   values:
