@@ -38,6 +38,7 @@ stringData:
             name: linkvault-app-logs
             selector:
               - app.kubernetes.io/name={{ include "linkvault.name" . }}
+            namespace: {{ .Release.Namespace }}
             limits:
               maxLines: 10000
 
@@ -45,6 +46,7 @@ stringData:
             name: postgresql-logs
             selector:
               - app.kubernetes.io/name=postgresql
+            namespace: {{ .Release.Namespace }}
             limits:
               maxLines: 5000
 
@@ -52,6 +54,7 @@ stringData:
             name: redis-logs
             selector:
               - app.kubernetes.io/name=redis
+            namespace: {{ .Release.Namespace }}
             limits:
               maxLines: 5000
 
@@ -59,13 +62,19 @@ stringData:
             name: replicated-sdk-logs
             selector:
               - app.kubernetes.io/name=replicated
+            namespace: {{ .Release.Namespace }}
             limits:
               maxLines: 5000
 
-        - http:
+        - exec:
+            name: linkvault-health
             collectorName: linkvault-health
-            get:
-              url: https://app.link-vaults.com/healthz
+            selector:
+              - app.kubernetes.io/name={{ include "linkvault.name" . }}
+            namespace: {{ .Release.Namespace }}
+            command: ["wget"]
+            args: ["-q", "-O-", "http://localhost:8080/healthz"]
+            timeout: 10s
 
       analyzers:
         - deploymentStatus:
@@ -126,8 +135,8 @@ stringData:
 
         - textAnalyze:
             checkName: Application Health Endpoint
-            fileName: linkvault-health.json
-            regex: '\\"status\\":\\"ok\\"'
+            fileName: linkvault-health/*/*/linkvault-health-stdout.txt
+            regex: '"status":\s*"ok"'
             outcomes:
               - pass:
                   when: "true"

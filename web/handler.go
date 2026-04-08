@@ -357,6 +357,7 @@ func NewRouter(db *store.Store, c *cache.Cache, lic *license.Checker, sdkClient 
 			if err != nil {
 				log.Printf("Support bundle: failed to inject SDK files: %v", err)
 			} else {
+				log.Printf("Support bundle: injected SDK files, using %s", injected)
 				bundlePath = injected
 			}
 
@@ -454,8 +455,15 @@ func injectSDKFiles(bundlePath, sdkAddr string) (string, error) {
 		return io.ReadAll(resp.Body)
 	}
 
-	appInfo, _ := fetchJSON(sdkAddr + "/api/v1/app/info")
-	licenseInfo, _ := fetchJSON(sdkAddr + "/api/v1/license/info")
+	appInfo, err := fetchJSON(sdkAddr + "/api/v1/app/info")
+	if err != nil {
+		log.Printf("Support bundle inject: failed to fetch app-info: %v", err)
+	}
+	licenseInfo, err := fetchJSON(sdkAddr + "/api/v1/license/info")
+	if err != nil {
+		log.Printf("Support bundle inject: failed to fetch license: %v", err)
+	}
+	log.Printf("Support bundle inject: app-info=%d bytes, license=%d bytes", len(appInfo), len(licenseInfo))
 
 	if len(appInfo) == 0 && len(licenseInfo) == 0 {
 		return bundlePath, nil
@@ -520,6 +528,8 @@ func injectSDKFiles(bundlePath, sdkAddr string) (string, error) {
 
 	addFile("app-info.json", appInfo)
 	addFile("license.yaml", licenseInfo)
+	addFile("replicated-sdk/default/replicated/replicated-app-info.json", appInfo)
+	addFile("replicated-sdk/default/replicated/replicated-license-info.json", licenseInfo)
 
 	return outPath, nil
 }

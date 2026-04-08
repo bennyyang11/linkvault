@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: proxy.link-vaults.com/proxy/linkvault-lynx/bennyyang11/linkvault
-  tag: "2.8.0"
+  tag: "3.0.0"
   pullPolicy: IfNotPresent
 
 initImage:
