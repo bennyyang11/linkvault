@@ -1,12 +1,17 @@
 package web
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"html"
 	"io"
 	"io/fs"
+	"log"
 	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -322,18 +327,49 @@ func NewRouter(db *store.Store, c *cache.Cache, lic *license.Checker, sdkClient 
 
 	// --- Support Bundle ---
 	mux.HandleFunc("POST /api/support-bundle", func(w http.ResponseWriter, r *http.Request) {
-		client := &http.Client{Timeout: 30 * time.Second}
-		resp, err := client.Post(
-			fmt.Sprintf("%s/api/v1/troubleshoot/supportbundle/app", strings.TrimSuffix(sdkClient.SDKAddr(), "/")),
-			"application/json",
-			nil,
-		)
-		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to trigger support bundle: " + err.Error()})
-			return
-		}
-		resp.Body.Close()
-		writeJSON(w, http.StatusOK, map[string]string{"message": "Support bundle generation started"})
+		go func() {
+			tmpDir, err := os.MkdirTemp("", "support-bundle-")
+			if err != nil {
+				log.Printf("Support bundle: failed to create temp dir: %v", err)
+				return
+			}
+			defer os.RemoveAll(tmpDir)
+
+			outputPath := filepath.Join(tmpDir, "bundle")
+			cmd := exec.Command("support-bundle", "--load-cluster-specs", "--interactive=false", "-o", outputPath)
+			if out, err := cmd.CombinedOutput(); err != nil {
+				log.Printf("Support bundle generation failed: %v\n%s", err, string(out))
+				return
+			}
+
+			files, _ := filepath.Glob(tmpDir + "/*.tar.gz")
+			if len(files) == 0 {
+				log.Printf("Support bundle: no output file found")
+				return
+			}
+
+			bundleData, err := os.ReadFile(files[0])
+			if err != nil {
+				log.Printf("Support bundle: failed to read file: %v", err)
+				return
+			}
+
+			sdkURL := fmt.Sprintf("%s/api/v1/app/supportbundle", strings.TrimSuffix(sdkClient.SDKAddr(), "/"))
+			req, _ := http.NewRequest("POST", sdkURL, bytes.NewReader(bundleData))
+			req.Header.Set("Content-Type", "application/gzip")
+			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(bundleData)))
+
+			uploadClient := &http.Client{Timeout: 120 * time.Second}
+			resp, err := uploadClient.Do(req)
+			if err != nil {
+				log.Printf("Support bundle: upload to Vendor Portal failed: %v", err)
+				return
+			}
+			resp.Body.Close()
+			log.Printf("Support bundle uploaded to Vendor Portal (status: %d)", resp.StatusCode)
+		}()
+
+		writeJSON(w, http.StatusOK, map[string]string{"message": "Support bundle generation started. It will be uploaded to the Vendor Portal automatically."})
 	})
 
 	// Static files (catch-all, must be last)
