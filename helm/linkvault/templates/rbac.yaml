@@ -6,6 +6,41 @@ metadata:
     app.kubernetes.io/name: {{ include "linkvault.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
 ---
+# App SA: can create and manage support bundle Jobs in its namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "linkvault.fullname" . }}-job-manager
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["create", "get", "list", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "linkvault.fullname" . }}-job-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "linkvault.fullname" . }}-job-manager
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "linkvault.fullname" . }}
+    namespace: {{ .Release.Namespace }}
+---
+# Dedicated SA for the support bundle Job
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: linkvault-support-bundle
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -80,5 +115,5 @@ roleRef:
   name: {{ include "linkvault.fullname" . }}-support-bundle
 subjects:
   - kind: ServiceAccount
-    name: {{ include "linkvault.fullname" . }}
+    name: linkvault-support-bundle
     namespace: {{ .Release.Namespace }}

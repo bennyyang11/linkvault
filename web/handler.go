@@ -1,7 +1,8 @@
 package web
 
 import (
-	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"html"
@@ -10,8 +11,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -327,48 +326,13 @@ func NewRouter(db *store.Store, c *cache.Cache, lic *license.Checker, sdkClient 
 
 	// --- Support Bundle ---
 	mux.HandleFunc("POST /api/support-bundle", func(w http.ResponseWriter, r *http.Request) {
-		go func() {
-			sdkAddr := strings.TrimSuffix(sdkClient.SDKAddr(), "/")
-			tmpDir, err := os.MkdirTemp("", "support-bundle-")
-			if err != nil {
-				log.Printf("Support bundle: failed to create temp dir: %v", err)
-				return
-			}
-			defer os.RemoveAll(tmpDir)
+		sdkAddr := strings.TrimSuffix(sdkClient.SDKAddr(), "/")
 
-			outputPath := filepath.Join(tmpDir, "bundle")
-			cmd := exec.Command("support-bundle", "--load-cluster-specs", "--interactive=false", "-o", outputPath)
-			if out, err := cmd.CombinedOutput(); err != nil {
-				log.Printf("Support bundle generation failed: %v\n%s", err, string(out))
-				return
-			}
-
-			files, _ := filepath.Glob(tmpDir + "/*.tar.gz")
-			if len(files) == 0 {
-				log.Printf("Support bundle: no output file found")
-				return
-			}
-
-			bundleData, err := os.ReadFile(files[0])
-			if err != nil {
-				log.Printf("Support bundle: failed to read file: %v", err)
-				return
-			}
-
-			sdkURL := fmt.Sprintf("%s/api/v1/supportbundle", sdkAddr)
-			req, _ := http.NewRequest("POST", sdkURL, bytes.NewReader(bundleData))
-			req.Header.Set("Content-Type", "application/gzip")
-			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(bundleData)))
-
-			uploadClient := &http.Client{Timeout: 120 * time.Second}
-			resp, err := uploadClient.Do(req)
-			if err != nil {
-				log.Printf("Support bundle: upload to Vendor Portal failed: %v", err)
-				return
-			}
-			resp.Body.Close()
-			log.Printf("Support bundle uploaded to Vendor Portal (status: %d)", resp.StatusCode)
-		}()
+		if err := createSupportBundleJob(sdkAddr); err != nil {
+			log.Printf("Support bundle: failed to create job: %v", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to start support bundle collection"})
+			return
+		}
 
 		writeJSON(w, http.StatusOK, map[string]string{"message": "Support bundle generation started. It will be uploaded to the Vendor Portal automatically."})
 	})
@@ -431,6 +395,93 @@ func fetchPageInfo(rawURL string) (title, description, faviconURL string) {
 	}
 
 	return
+}
+
+func createSupportBundleJob(sdkAddr string) error {
+	token, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
+	if err != nil {
+		return fmt.Errorf("read SA token: %w", err)
+	}
+	ns, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		return fmt.Errorf("read namespace: %w", err)
+	}
+	namespace := strings.TrimSpace(string(ns))
+
+	jobName := fmt.Sprintf("support-bundle-%d", time.Now().Unix())
+	ttl := 300
+	backoff := int32(0)
+
+	jobJSON := fmt.Sprintf(`{
+  "apiVersion": "batch/v1",
+  "kind": "Job",
+  "metadata": {
+    "name": %q,
+    "namespace": %q
+  },
+  "spec": {
+    "backoffLimit": %d,
+    "ttlSecondsAfterFinished": %d,
+    "template": {
+      "spec": {
+        "serviceAccountName": "linkvault-support-bundle",
+        "restartPolicy": "Never",
+        "volumes": [{"name": "bundle", "emptyDir": {}}],
+        "initContainers": [{
+          "name": "collect",
+          "image": "replicated/troubleshoot:latest",
+          "command": ["support-bundle"],
+          "args": ["--load-cluster-specs", "--interactive=false", "-o", "/share/bundle"],
+          "volumeMounts": [{"name": "bundle", "mountPath": "/share"}]
+        }],
+        "containers": [{
+          "name": "upload",
+          "image": "curlimages/curl:latest",
+          "command": ["sh", "-c"],
+          "args": ["BUNDLE=$(ls /share/*.tar.gz 2>/dev/null | head -1); if [ -z \"$BUNDLE\" ]; then echo 'No bundle found'; exit 1; fi; echo \"Uploading $BUNDLE\"; curl -sf --data-binary @${BUNDLE} -H 'Content-Type: application/gzip' %s/api/v1/supportbundle && echo 'Upload complete'"],
+          "volumeMounts": [{"name": "bundle", "mountPath": "/share"}]
+        }]
+      }
+    }
+  }
+}`, jobName, namespace, backoff, ttl, sdkAddr)
+
+	caCert, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
+	if err != nil {
+		return fmt.Errorf("read CA cert: %w", err)
+	}
+
+	certPool := x509.NewCertPool()
+	certPool.AppendCertsFromPEM(caCert)
+
+	k8sClient := &http.Client{
+		Timeout: 15 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{RootCAs: certPool},
+		},
+	}
+
+	apiURL := fmt.Sprintf("https://kubernetes.default.svc/apis/batch/v1/namespaces/%s/jobs", namespace)
+	req, err := http.NewRequest("POST", apiURL, strings.NewReader(jobJSON))
+	if err != nil {
+		return fmt.Errorf("build request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+string(token))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := k8sClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("k8s API request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
+		return fmt.Errorf("k8s API returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	log.Printf("Support bundle Job %q created in namespace %q", jobName, namespace)
+	return nil
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
