@@ -14,6 +14,16 @@ stringData:
       collectors:
         - clusterResources: {}
 
+        - http:
+            collectorName: replicated/app-info
+            get:
+              url: http://replicated.{{ .Release.Namespace }}.svc.cluster.local:3000/api/v1/app/info
+
+        - http:
+            collectorName: replicated/license
+            get:
+              url: http://replicated.{{ .Release.Namespace }}.svc.cluster.local:3000/api/v1/license/info
+
         - logs:
             name: linkvault-app-logs
             selector:
