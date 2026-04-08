@@ -21,13 +21,15 @@ rules:
       - nodes
       - persistentvolumeclaims
       - persistentvolumes
-      - pods
       - pods/log
       - resourcequotas
       - secrets
       - serviceaccounts
       - services
     verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "create", "delete"]
   - apiGroups: [""]
     resources: ["pods/exec"]
     verbs: ["create"]
