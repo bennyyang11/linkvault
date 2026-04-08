@@ -112,7 +112,7 @@ spec:
             - name: LISTEN_ADDR
               value: ":8080"
             - name: REPLICATED_SDK_ADDRESS
-              value: "http://{{ .Release.Name }}-replicated:3000"
+              value: "http://replicated:3000"
           livenessProbe:
             httpGet:
               path: /healthz

@@ -91,7 +91,7 @@ stringData:
                   message: Redis is running.
 
         - deploymentStatus:
-            name: {{ .Release.Name }}-replicated
+            name: replicated
             namespace: {{ .Release.Namespace }}
             outcomes:
               - fail:
