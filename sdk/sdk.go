@@ -107,7 +107,7 @@ func (c *Client) checkUpdates() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if len(updates) > 0 {
-		c.updateInfo = &updates[0]
+		c.updateInfo = &updates[len(updates)-1]
 	} else {
 		c.updateInfo = nil
 	}

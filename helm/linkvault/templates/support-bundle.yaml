@@ -35,15 +35,15 @@ spec:
     - logs:
         name: replicated-sdk-logs
         selector:
-          - app.kubernetes.io/name=replicated
+          - app.kubernetes.io/name=linkvault-sdk
         limits:
           maxLines: 5000
 
-    # Health endpoint via http collector (in-cluster Service DNS)
+    # Health endpoint via http collector
     - http:
         collectorName: linkvault-health
         get:
-          url: http://{{ include "linkvault.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/healthz
+          url: https://app.link-vaults.com/healthz
 
   analyzers:
 
@@ -77,15 +77,15 @@ spec:
               when: ">= 1"
               message: PostgreSQL is running.
 
-    # Redis deployment
-    - deploymentStatus:
+    # Redis — Bitnami deploys as StatefulSet
+    - statefulsetStatus:
         name: {{ include "linkvault.fullname" . }}-redis-master
         namespace: {{ .Release.Namespace }}
         outcomes:
           - fail:
               when: "< 1"
               message: |
-                Redis has no ready replicas.
+                Redis StatefulSet has no ready replicas.
                 Search caching is degraded but the application will continue to function.
                 Check Redis logs: kubectl logs -l app.kubernetes.io/name=redis -n {{ .Release.Namespace }}
           - pass:
@@ -94,7 +94,7 @@ spec:
 
     # Replicated SDK deployment
     - deploymentStatus:
-        name: {{ include "linkvault.fullname" . }}-linkvault-sdk
+        name: {{ .Release.Name }}-sdk
         namespace: {{ .Release.Namespace }}
         outcomes:
           - fail:
@@ -111,7 +111,7 @@ spec:
     - textAnalyze:
         checkName: Application Health Endpoint
         fileName: linkvault-health.json
-        regex: '"status":"ok"'
+        regex: '\\"status\\":\\"ok\\"'
         outcomes:
           - pass:
               when: "true"
@@ -126,7 +126,7 @@ spec:
     # Detect database connection errors in app logs
     - textAnalyze:
         checkName: Database Connection Errors
-        fileName: linkvault-app-logs/*.log
+        fileName: linkvault-app-logs/*/*.log
         regex: 'pq: (connection refused|no such host|password authentication failed|the database system is starting up|FATAL)'
         outcomes:
           - fail:

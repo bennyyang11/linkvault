@@ -73,7 +73,13 @@ func New(connStr string) (*Store, error) {
 
 func (s *Store) Close() error { return s.db.Close() }
 
-func (s *Store) Ping() error { return s.db.Ping() }
+func (s *Store) Ping() error {
+	if err := s.db.Ping(); err != nil {
+		log.Printf("pq: database ping failed: %v", err)
+		return err
+	}
+	return nil
+}
 
 func (s *Store) runMigrations() error {
 	migrations := []string{
@@ -180,6 +186,7 @@ func (s *Store) ListBookmarks(tag, query string) ([]Bookmark, error) {
 
 	rows, err := s.db.Query(baseQuery, args...)
 	if err != nil {
+		log.Printf("pq: query failed in ListBookmarks: %v", err)
 		return nil, err
 	}
 	defer rows.Close()

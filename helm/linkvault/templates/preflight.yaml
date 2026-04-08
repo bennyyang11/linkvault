@@ -16,6 +16,11 @@ spec:
           - "nc -z -w5 {{ .Values.externalPostgresql.host }} {{ .Values.externalPostgresql.port | default `5432` }} && echo reachable || echo unreachable"
         timeout: 15s
     {{- end }}
+    - http:
+        collectorName: replicated-api-check
+        get:
+          url: https://replicated.app
+          insecureSkipVerify: true
 
   analyzers:
 
@@ -37,11 +42,20 @@ spec:
     {{- end }}
 
     # CHECK 2: Required external endpoint — Replicated API connectivity
-    - clusterVersion:
+    - textAnalyze:
+        checkName: Replicated API Connectivity
+        fileName: replicated-api-check.json
+        regex: '"response"'
         outcomes:
           - pass:
-              when: ">= 1.0.0"
-              message: Cluster API is reachable.
+              when: "true"
+              message: Replicated API endpoint (replicated.app) is reachable.
+          - fail:
+              when: "false"
+              message: |
+                Cannot reach the Replicated API endpoint (replicated.app).
+                The Replicated SDK requires outbound connectivity for license validation, metrics reporting, and update checks.
+                Verify the cluster has outbound internet access and that replicated.app is not blocked by a firewall or proxy.
 
     # CHECK 3: Cluster CPU
     - nodeResources:
@@ -53,9 +67,6 @@ spec:
                 The cluster has less than 2 allocatable CPU cores.
                 LinkVault with embedded PostgreSQL and Redis requires at least 2 cores.
                 Add nodes or increase the size of existing nodes before installing.
-          - warn:
-              when: "sum(cpuAllocatable) < 4"
-              message: The cluster has fewer than 4 allocatable CPU cores. Performance may be limited under load.
           - pass:
               when: "sum(cpuAllocatable) >= 2"
               message: Cluster has sufficient CPU.
@@ -70,9 +81,6 @@ spec:
                 The cluster has less than 2Gi of allocatable memory.
                 LinkVault requires at least 2Gi to run the application, PostgreSQL, and Redis.
                 Add nodes or increase node memory before installing.
-          - warn:
-              when: "sum(memoryAllocatable) < 4Gi"
-              message: The cluster has less than 4Gi allocatable memory. Consider adding resources for production workloads.
           - pass:
               when: "sum(memoryAllocatable) >= 2Gi"
               message: Cluster has sufficient memory.

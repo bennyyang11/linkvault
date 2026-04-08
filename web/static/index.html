@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LinkVault</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -46,7 +47,7 @@
     <div id="expired-overlay" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
         <div class="bg-white rounded-2xl shadow-2xl p-10 text-center max-w-sm mx-4">
             <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H9m3-3a3 3 0 100-6 3 3 0 000 6z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 11V7a5 5 0 00-10 0v4"/></svg>
+                <i data-lucide="shield-off" class="w-8 h-8 text-red-500"></i>
             </div>
             <h2 class="text-xl font-semibold text-slate-900 mb-2">License Expired</h2>
             <p class="text-slate-500 text-sm">Your LinkVault license has expired. Contact your administrator to renew.</p>
@@ -203,5 +204,6 @@
     </div>
 
     <script src="/app.js"></script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>
