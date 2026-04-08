@@ -1,170 +1,162 @@
-{{- if .Capabilities.APIVersions.Has "troubleshoot.sh/v1beta2" }}
-apiVersion: troubleshoot.sh/v1beta2
-kind: SupportBundle
+apiVersion: v1
+kind: Secret
 metadata:
-  name: {{ include "linkvault.fullname" . }}
-spec:
-  collectors:
-    - clusterResources: {}
+  name: {{ include "linkvault.fullname" . }}-support-bundle
+  labels:
+    troubleshoot.sh/kind: support-bundle
+stringData:
+  support-bundle-spec: |
+    apiVersion: troubleshoot.sh/v1beta2
+    kind: SupportBundle
+    metadata:
+      name: {{ include "linkvault.fullname" . }}
+    spec:
+      collectors:
+        - clusterResources: {}
 
-    # App logs
-    - logs:
-        name: linkvault-app-logs
-        selector:
-          - app.kubernetes.io/name={{ include "linkvault.name" . }}
-        limits:
-          maxLines: 10000
+        - logs:
+            name: linkvault-app-logs
+            selector:
+              - app.kubernetes.io/name={{ include "linkvault.name" . }}
+            limits:
+              maxLines: 10000
 
-    # PostgreSQL logs
-    - logs:
-        name: postgresql-logs
-        selector:
-          - app.kubernetes.io/name=postgresql
-        limits:
-          maxLines: 5000
+        - logs:
+            name: postgresql-logs
+            selector:
+              - app.kubernetes.io/name=postgresql
+            limits:
+              maxLines: 5000
 
-    # Redis logs
-    - logs:
-        name: redis-logs
-        selector:
-          - app.kubernetes.io/name=redis
-        limits:
-          maxLines: 5000
+        - logs:
+            name: redis-logs
+            selector:
+              - app.kubernetes.io/name=redis
+            limits:
+              maxLines: 5000
 
-    # Replicated SDK logs
-    - logs:
-        name: replicated-sdk-logs
-        selector:
-          - app.kubernetes.io/name=linkvault-sdk
-        limits:
-          maxLines: 5000
+        - logs:
+            name: replicated-sdk-logs
+            selector:
+              - app.kubernetes.io/name=linkvault-sdk
+            limits:
+              maxLines: 5000
 
-    # Health endpoint via http collector
-    - http:
-        collectorName: linkvault-health
-        get:
-          url: https://app.link-vaults.com/healthz
+        - http:
+            collectorName: linkvault-health
+            get:
+              url: https://app.link-vaults.com/healthz
 
-  analyzers:
+      analyzers:
+        - deploymentStatus:
+            name: {{ include "linkvault.fullname" . }}
+            namespace: {{ .Release.Namespace }}
+            outcomes:
+              - fail:
+                  when: "< 1"
+                  message: |
+                    LinkVault application has no ready replicas.
+                    Users cannot access the bookmark manager. Check pod logs for startup errors:
+                    kubectl logs -l app.kubernetes.io/name={{ include "linkvault.name" . }} -n {{ .Release.Namespace }}
+              - pass:
+                  when: ">= 1"
+                  message: LinkVault application is running.
 
-    # App deployment
-    - deploymentStatus:
-        name: {{ include "linkvault.fullname" . }}
-        namespace: {{ .Release.Namespace }}
-        outcomes:
-          - fail:
-              when: "< 1"
-              message: |
-                LinkVault application has no ready replicas.
-                Users cannot access the bookmark manager. Check pod logs for startup errors:
-                kubectl logs -l app.kubernetes.io/name={{ include "linkvault.name" . }} -n {{ .Release.Namespace }}
-          - pass:
-              when: ">= 1"
-              message: LinkVault application is running.
+        - statefulsetStatus:
+            name: {{ include "linkvault.fullname" . }}-postgresql
+            namespace: {{ .Release.Namespace }}
+            outcomes:
+              - fail:
+                  when: "< 1"
+                  message: |
+                    PostgreSQL StatefulSet has no ready replicas.
+                    All bookmark data is inaccessible. LinkVault cannot function without the database.
+                    Check PostgreSQL logs: kubectl logs -l app.kubernetes.io/name=postgresql -n {{ .Release.Namespace }}
+              - pass:
+                  when: ">= 1"
+                  message: PostgreSQL is running.
 
-    # PostgreSQL — Bitnami deploys as StatefulSet
-    - statefulsetStatus:
-        name: {{ include "linkvault.fullname" . }}-postgresql
-        namespace: {{ .Release.Namespace }}
-        outcomes:
-          - fail:
-              when: "< 1"
-              message: |
-                PostgreSQL StatefulSet has no ready replicas.
-                All bookmark data is inaccessible. LinkVault cannot function without the database.
-                Check PostgreSQL logs: kubectl logs -l app.kubernetes.io/name=postgresql -n {{ .Release.Namespace }}
-          - pass:
-              when: ">= 1"
-              message: PostgreSQL is running.
+        - statefulsetStatus:
+            name: {{ include "linkvault.fullname" . }}-redis-master
+            namespace: {{ .Release.Namespace }}
+            outcomes:
+              - fail:
+                  when: "< 1"
+                  message: |
+                    Redis StatefulSet has no ready replicas.
+                    Search caching is degraded but the application will continue to function.
+                    Check Redis logs: kubectl logs -l app.kubernetes.io/name=redis -n {{ .Release.Namespace }}
+              - pass:
+                  when: ">= 1"
+                  message: Redis is running.
 
-    # Redis — Bitnami deploys as StatefulSet
-    - statefulsetStatus:
-        name: {{ include "linkvault.fullname" . }}-redis-master
-        namespace: {{ .Release.Namespace }}
-        outcomes:
-          - fail:
-              when: "< 1"
-              message: |
-                Redis StatefulSet has no ready replicas.
-                Search caching is degraded but the application will continue to function.
-                Check Redis logs: kubectl logs -l app.kubernetes.io/name=redis -n {{ .Release.Namespace }}
-          - pass:
-              when: ">= 1"
-              message: Redis is running.
+        - deploymentStatus:
+            name: {{ .Release.Name }}-sdk
+            namespace: {{ .Release.Namespace }}
+            outcomes:
+              - fail:
+                  when: "< 1"
+                  message: |
+                    Replicated SDK has no ready replicas.
+                    License validation and custom metrics reporting are unavailable.
+                    The application may not enforce license limits correctly.
+              - pass:
+                  when: ">= 1"
+                  message: Replicated SDK is running.
 
-    # Replicated SDK deployment
-    - deploymentStatus:
-        name: {{ .Release.Name }}-sdk
-        namespace: {{ .Release.Namespace }}
-        outcomes:
-          - fail:
-              when: "< 1"
-              message: |
-                Replicated SDK has no ready replicas.
-                License validation and custom metrics reporting are unavailable.
-                The application may not enforce license limits correctly.
-          - pass:
-              when: ">= 1"
-              message: Replicated SDK is running.
+        - textAnalyze:
+            checkName: Application Health Endpoint
+            fileName: linkvault-health.json
+            regex: '\\"status\\":\\"ok\\"'
+            outcomes:
+              - pass:
+                  when: "true"
+                  message: LinkVault health endpoint is responding and reports status ok.
+              - fail:
+                  when: "false"
+                  message: |
+                    LinkVault health endpoint did not return status ok.
+                    The application may be starting up, crashing, or unable to reach PostgreSQL.
+                    Check application logs for connection errors.
 
-    # Health check via http collector + textAnalyze
-    - textAnalyze:
-        checkName: Application Health Endpoint
-        fileName: linkvault-health.json
-        regex: '\\"status\\":\\"ok\\"'
-        outcomes:
-          - pass:
-              when: "true"
-              message: LinkVault health endpoint is responding and reports status ok.
-          - fail:
-              when: "false"
-              message: |
-                LinkVault health endpoint did not return status ok.
-                The application may be starting up, crashing, or unable to reach PostgreSQL.
-                Check application logs for connection errors.
+        - textAnalyze:
+            checkName: Database Connection Errors
+            fileName: linkvault-app-logs/*/*.log
+            regex: 'pq: (connection refused|no such host|password authentication failed|the database system is starting up|FATAL)'
+            outcomes:
+              - fail:
+                  when: "true"
+                  message: |
+                    LinkVault logs contain PostgreSQL connection errors.
+                    Verify PostgreSQL is running and connection credentials are correct.
+                    If using an external database, check host, port, and firewall rules.
+                    See: https://docs.linkvault.dev/troubleshooting/database
+              - pass:
+                  when: "false"
+                  message: No PostgreSQL connection errors found in application logs.
 
-    # Detect database connection errors in app logs
-    - textAnalyze:
-        checkName: Database Connection Errors
-        fileName: linkvault-app-logs/*/*.log
-        regex: 'pq: (connection refused|no such host|password authentication failed|the database system is starting up|FATAL)'
-        outcomes:
-          - fail:
-              when: "true"
-              message: |
-                LinkVault logs contain PostgreSQL connection errors.
-                Verify PostgreSQL is running and connection credentials are correct.
-                If using an external database, check host, port, and firewall rules.
-                See: https://docs.linkvault.dev/troubleshooting/database
-          - pass:
-              when: "false"
-              message: No PostgreSQL connection errors found in application logs.
+        - storageClass:
+            checkName: Default Storage Class
+            outcomes:
+              - fail:
+                  when: "= 0"
+                  message: |
+                    No default storage class found.
+                    PostgreSQL requires a default storage class for persistent data.
+                    Create one and mark it as default before installing.
+              - pass:
+                  when: ">= 1"
+                  message: Default storage class is present.
 
-    # Storage class
-    - storageClass:
-        checkName: Default Storage Class
-        outcomes:
-          - fail:
-              when: "= 0"
-              message: |
-                No default storage class found.
-                PostgreSQL requires a default storage class for persistent data.
-                Create one and mark it as default before installing.
-          - pass:
-              when: ">= 1"
-              message: Default storage class is present.
-
-    # Node readiness
-    - nodeResources:
-        checkName: Node Readiness
-        outcomes:
-          - fail:
-              when: "min(nodeReady) == false"
-              message: |
-                One or more cluster nodes are not Ready.
-                This may cause pod scheduling failures and service disruption.
-                Run kubectl get nodes to identify and investigate the affected nodes.
-          - pass:
-              when: "min(nodeReady) == true"
-              message: All nodes are Ready.
-{{- end }}
+        - nodeResources:
+            checkName: Node Readiness
+            outcomes:
+              - fail:
+                  when: "min(nodeReady) == false"
+                  message: |
+                    One or more cluster nodes are not Ready.
+                    This may cause pod scheduling failures and service disruption.
+                    Run kubectl get nodes to identify and investigate the affected nodes.
+              - pass:
+                  when: "min(nodeReady) == true"
+                  message: All nodes are Ready.
