@@ -354,7 +354,7 @@ func NewRouter(db *store.Store, c *cache.Cache, lic *license.Checker, sdkClient 
 				return
 			}
 
-			sdkURL := fmt.Sprintf("%s/api/v1/app/supportbundle", strings.TrimSuffix(sdkClient.SDKAddr(), "/"))
+			sdkURL := fmt.Sprintf("%s/api/v1/supportbundle", strings.TrimSuffix(sdkClient.SDKAddr(), "/"))
 			req, _ := http.NewRequest("POST", sdkURL, bytes.NewReader(bundleData))
 			req.Header.Set("Content-Type", "application/gzip")
 			req.Header.Set("Content-Length", fmt.Sprintf("%d", len(bundleData)))
