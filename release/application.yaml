@@ -11,7 +11,7 @@ spec:
     - deployment/linkvault
     - statefulset/linkvault-postgresql
     - deployment/linkvault-redis-master
-    - deployment/linkvault-linkvault-sdk
+    - deployment/linkvault-replicated
   ports:
     - serviceName: linkvault
       servicePort: 8080

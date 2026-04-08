@@ -79,7 +79,7 @@ externalRedis:
   existingSecret: ""
 
 # --- Global settings ---
-linkvault-sdk:
+replicated:
   integration:
     licenseID: ""
 

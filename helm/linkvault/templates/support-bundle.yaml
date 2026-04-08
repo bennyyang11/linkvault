@@ -38,7 +38,7 @@ stringData:
         - logs:
             name: replicated-sdk-logs
             selector:
-              - app.kubernetes.io/name=linkvault-sdk
+              - app.kubernetes.io/name=replicated
             limits:
               maxLines: 5000
 
@@ -91,7 +91,7 @@ stringData:
                   message: Redis is running.
 
         - deploymentStatus:
-            name: {{ .Release.Name }}-sdk
+            name: {{ .Release.Name }}-replicated
             namespace: {{ .Release.Namespace }}
             outcomes:
               - fail:
