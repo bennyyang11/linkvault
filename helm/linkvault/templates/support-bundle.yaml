@@ -66,15 +66,10 @@ stringData:
             limits:
               maxLines: 5000
 
-        - exec:
-            name: linkvault-health
+        - http:
             collectorName: linkvault-health
-            selector:
-              - app.kubernetes.io/name={{ include "linkvault.name" . }}
-            namespace: {{ .Release.Namespace }}
-            command: ["wget"]
-            args: ["-q", "-O-", "http://localhost:8080/healthz"]
-            timeout: 10s
+            get:
+              url: https://app.link-vaults.com/healthz
 
       analyzers:
         - deploymentStatus:
@@ -135,8 +130,8 @@ stringData:
 
         - textAnalyze:
             checkName: Application Health Endpoint
-            fileName: linkvault-health/*/*/linkvault-health-stdout.txt
-            regex: '"status":\s*"ok"'
+            fileName: linkvault-health.json
+            regex: '\\"status\\":\\"ok\\"'
             outcomes:
               - pass:
                   when: "true"

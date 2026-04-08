@@ -1,9 +1,7 @@
 package web
 
 import (
-	"archive/tar"
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"html"
@@ -351,17 +349,7 @@ func NewRouter(db *store.Store, c *cache.Cache, lic *license.Checker, sdkClient 
 				return
 			}
 
-			bundlePath := files[0]
-
-			injected, err := injectSDKFiles(bundlePath, sdkAddr)
-			if err != nil {
-				log.Printf("Support bundle: failed to inject SDK files: %v", err)
-			} else {
-				log.Printf("Support bundle: injected SDK files, using %s", injected)
-				bundlePath = injected
-			}
-
-			bundleData, err := os.ReadFile(bundlePath)
+			bundleData, err := os.ReadFile(files[0])
 			if err != nil {
 				log.Printf("Support bundle: failed to read file: %v", err)
 				return
@@ -443,95 +431,6 @@ func fetchPageInfo(rawURL string) (title, description, faviconURL string) {
 	}
 
 	return
-}
-
-func injectSDKFiles(bundlePath, sdkAddr string) (string, error) {
-	fetchJSON := func(url string) ([]byte, error) {
-		resp, err := http.Get(url)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-		return io.ReadAll(resp.Body)
-	}
-
-	appInfo, err := fetchJSON(sdkAddr + "/api/v1/app/info")
-	if err != nil {
-		log.Printf("Support bundle inject: failed to fetch app-info: %v", err)
-	}
-	licenseInfo, err := fetchJSON(sdkAddr + "/api/v1/license/info")
-	if err != nil {
-		log.Printf("Support bundle inject: failed to fetch license: %v", err)
-	}
-	log.Printf("Support bundle inject: app-info=%d bytes, license=%d bytes", len(appInfo), len(licenseInfo))
-
-	if len(appInfo) == 0 && len(licenseInfo) == 0 {
-		return bundlePath, nil
-	}
-
-	outPath := bundlePath + ".patched.tar.gz"
-	inFile, err := os.Open(bundlePath)
-	if err != nil {
-		return "", err
-	}
-	defer inFile.Close()
-
-	gzr, err := gzip.NewReader(inFile)
-	if err != nil {
-		return "", err
-	}
-	defer gzr.Close()
-
-	outFile, err := os.Create(outPath)
-	if err != nil {
-		return "", err
-	}
-	defer outFile.Close()
-
-	gzw := gzip.NewWriter(outFile)
-	defer gzw.Close()
-
-	tw := tar.NewWriter(gzw)
-	defer tw.Close()
-
-	tr := tar.NewReader(gzr)
-	var prefix string
-	for {
-		hdr, err := tr.Next()
-		if err != nil {
-			break
-		}
-		if prefix == "" {
-			parts := strings.SplitN(hdr.Name, "/", 2)
-			if len(parts) > 1 {
-				prefix = parts[0]
-			}
-		}
-		tw.WriteHeader(hdr)
-		if hdr.Size > 0 {
-			io.Copy(tw, tr)
-		}
-	}
-
-	addFile := func(name string, data []byte) {
-		if len(data) == 0 {
-			return
-		}
-		tw.WriteHeader(&tar.Header{
-			Name:    prefix + "/" + name,
-			Size:    int64(len(data)),
-			Mode:    0644,
-			ModTime: time.Now(),
-		})
-		tw.Write(data)
-	}
-
-	addFile("app-info.json", appInfo)
-	addFile("license.yaml", licenseInfo)
-	addFile("replicated-sdk/default/replicated/replicated-app-info.json", appInfo)
-	addFile("replicated-sdk/default/replicated/replicated-license-info.json", licenseInfo)
-
-	return outPath, nil
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
