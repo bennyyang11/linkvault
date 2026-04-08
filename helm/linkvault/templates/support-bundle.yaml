@@ -14,15 +14,25 @@ stringData:
       collectors:
         - clusterResources: {}
 
-        - http:
-            collectorName: replicated/app-info
-            get:
-              url: http://replicated.{{ .Release.Namespace }}.svc.cluster.local:3000/api/v1/app/info
+        - exec:
+            name: replicated-sdk
+            collectorName: replicated-app-info
+            selector:
+              - app.kubernetes.io/name={{ include "linkvault.name" . }}
+            namespace: {{ .Release.Namespace }}
+            command: ["wget"]
+            args: ["-q", "-O-", "http://replicated:3000/api/v1/app/info"]
+            timeout: 10s
 
-        - http:
-            collectorName: replicated/license
-            get:
-              url: http://replicated.{{ .Release.Namespace }}.svc.cluster.local:3000/api/v1/license/info
+        - exec:
+            name: replicated-sdk
+            collectorName: replicated-license-info
+            selector:
+              - app.kubernetes.io/name={{ include "linkvault.name" . }}
+            namespace: {{ .Release.Namespace }}
+            command: ["wget"]
+            args: ["-q", "-O-", "http://replicated:3000/api/v1/license/info"]
+            timeout: 10s
 
         - logs:
             name: linkvault-app-logs
