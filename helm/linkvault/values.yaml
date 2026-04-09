@@ -9,8 +9,9 @@ initImage:
   repository: proxy.link-vaults.com/proxy/linkvault-lynx/busybox
   tag: "1.36"
 
-nameOverride: ""
-fullnameOverride: ""
+replicated:
+  nameOverride: "linkvault-sdk"
+
 
 service:
   type: NodePort
@@ -79,10 +80,6 @@ externalRedis:
   existingSecret: ""
 
 # --- Global settings ---
-replicated:
-  integration:
-    licenseID: ""
-
 global:
   security:
     allowInsecureImages: true

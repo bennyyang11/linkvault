@@ -21,7 +21,7 @@ stringData:
               - app.kubernetes.io/name={{ include "linkvault.name" . }}
             namespace: {{ .Release.Namespace }}
             command: ["wget"]
-            args: ["-q", "-O-", "http://replicated:3000/api/v1/app/info"]
+            args: ["-q", "-O-", "http://linkvault-sdk:3000/api/v1/app/info"]
             timeout: 10s
 
         - exec:
@@ -31,7 +31,7 @@ stringData:
               - app.kubernetes.io/name={{ include "linkvault.name" . }}
             namespace: {{ .Release.Namespace }}
             command: ["wget"]
-            args: ["-q", "-O-", "http://replicated:3000/api/v1/license/info"]
+            args: ["-q", "-O-", "http://linkvault-sdk:3000/api/v1/license/info"]
             timeout: 10s
 
         - logs:
@@ -61,7 +61,7 @@ stringData:
         - logs:
             name: replicated-sdk-logs
             selector:
-              - app.kubernetes.io/name=replicated
+              - app.kubernetes.io/name=linkvault-sdk
             namespace: {{ .Release.Namespace }}
             limits:
               maxLines: 5000
