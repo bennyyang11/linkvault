@@ -436,15 +436,15 @@ func createSupportBundleJob(sdkAddr string) error {
         }],
         "containers": [{
           "name": "upload",
-          "image": "curlimages/curl:latest",
+          "image": "alpine:3.21",
           "command": ["sh", "-c"],
-          "args": ["BUNDLE=$(ls /share/*.tar.gz 2>/dev/null | head -1); if [ -z \"$BUNDLE\" ]; then echo 'No bundle found'; exit 1; fi; echo \"Uploading $BUNDLE\"; curl -sf --data-binary @${BUNDLE} -H 'Content-Type: application/gzip' %s/api/v1/supportbundle && echo 'Upload complete'"],
+          "args": ["apk add --no-cache tar gzip > /dev/null 2>&1; BUNDLE=$(ls /share/*.tar.gz 2>/dev/null | head -1); if [ -z \"$BUNDLE\" ]; then echo 'No bundle found'; exit 1; fi; echo \"Patching bundle with app-info and license\"; mkdir -p /tmp/patch; cd /tmp/patch; tar xzf $BUNDLE; PREFIX=$(ls -d */ | head -1); wget -qO ${PREFIX}app-info.json %s/api/v1/app/info 2>/dev/null; wget -qO ${PREFIX}license.yaml %s/api/v1/license/info 2>/dev/null; tar czf $BUNDLE .; echo \"Uploading $BUNDLE\"; wget -qO- --post-file=$BUNDLE --header='Content-Type: application/gzip' %s/api/v1/supportbundle; echo 'Upload complete'"],
           "volumeMounts": [{"name": "bundle", "mountPath": "/share"}]
         }]
       }
     }
   }
-}`, jobName, namespace, backoff, ttl, sdkAddr)
+}`, jobName, namespace, backoff, ttl, sdkAddr, sdkAddr, sdkAddr)
 
 	caCert, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
 	if err != nil {
