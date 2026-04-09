@@ -15,23 +15,23 @@ stringData:
         - clusterResources: {}
 
         - exec:
-            name: replicated-sdk
+            name: replicated-app-info
             collectorName: replicated-app-info
             selector:
-              - app.kubernetes.io/name={{ include "linkvault.name" . }}
+              - app.kubernetes.io/name=linkvault-sdk
             namespace: {{ .Release.Namespace }}
             command: ["wget"]
-            args: ["-q", "-O-", "http://linkvault-sdk:3000/api/v1/app/info"]
+            args: ["-q", "-O-", "http://localhost:3000/api/v1/app/info"]
             timeout: 10s
 
         - exec:
-            name: replicated-sdk
+            name: replicated-license-info
             collectorName: replicated-license-info
             selector:
-              - app.kubernetes.io/name={{ include "linkvault.name" . }}
+              - app.kubernetes.io/name=linkvault-sdk
             namespace: {{ .Release.Namespace }}
             command: ["wget"]
-            args: ["-q", "-O-", "http://linkvault-sdk:3000/api/v1/license/info"]
+            args: ["-q", "-O-", "http://localhost:3000/api/v1/license/info"]
             timeout: 10s
 
         - logs:
@@ -115,7 +115,7 @@ stringData:
                   message: Redis is running.
 
         - deploymentStatus:
-            name: replicated
+            name: linkvault-sdk
             namespace: {{ .Release.Namespace }}
             outcomes:
               - fail:

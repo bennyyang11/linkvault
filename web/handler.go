@@ -431,27 +431,19 @@ func createSupportBundleJob(sdkAddr string) error {
           "name": "collect",
           "image": "replicated/troubleshoot:latest",
           "command": ["support-bundle"],
-          "args": ["--load-cluster-specs", "--interactive=false", "-o", "/share/bundle"],
-          "volumeMounts": [{"name": "bundle", "mountPath": "/share"}]
-        },
-        {
-          "name": "patch",
-          "image": "alpine:3.21",
-          "command": ["sh", "-c"],
-          "args": ["BUNDLE=$(ls /share/*.tar.gz 2>/dev/null | head -1); if [ -z \"$BUNDLE\" ]; then echo 'No bundle'; exit 1; fi; cd /tmp; gunzip -c $BUNDLE > bundle.tar; PREFIX=$(tar tf bundle.tar | head -1 | cut -d/ -f1); mkdir -p $PREFIX; wget -qO $PREFIX/app-info.json %s/api/v1/app/info; wget -qO $PREFIX/license.yaml %s/api/v1/license/info; tar rf bundle.tar $PREFIX/app-info.json $PREFIX/license.yaml; gzip -f bundle.tar; cp bundle.tar.gz $BUNDLE; echo \"Patched $BUNDLE with app-info.json and license.yaml\""],
+          "args": ["--load-cluster-specs", "--interactive=false", "--debug", "-o", "/share/bundle"],
           "volumeMounts": [{"name": "bundle", "mountPath": "/share"}]
         }],
         "containers": [{
           "name": "upload",
           "image": "curlimages/curl:latest",
-          "command": ["sh", "-c"],
-          "args": ["BUNDLE=$(ls /share/*.tar.gz 2>/dev/null | head -1); if [ -z \"$BUNDLE\" ]; then echo 'No bundle found'; exit 1; fi; echo \"Uploading $BUNDLE\"; curl -sf --data-binary @${BUNDLE} -H 'Content-Type: application/gzip' %s/api/v1/supportbundle && echo 'Upload complete'"],
+          "command": ["curl", "--fail", "--silent", "--show-error", "-X", "POST", "-H", "Content-Type: application/gzip", "--data-binary", "@/share/bundle.tar.gz", "%s/api/v1/supportbundle"],
           "volumeMounts": [{"name": "bundle", "mountPath": "/share"}]
         }]
       }
     }
   }
-}`, jobName, namespace, backoff, ttl, sdkAddr, sdkAddr, sdkAddr)
+}`, jobName, namespace, backoff, ttl, sdkAddr)
 
 	caCert, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
 	if err != nil {
