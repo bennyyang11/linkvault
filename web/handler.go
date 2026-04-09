@@ -433,12 +433,19 @@ func createSupportBundleJob(sdkAddr string) error {
           "command": ["support-bundle"],
           "args": ["--load-cluster-specs", "--interactive=false", "-o", "/share/bundle"],
           "volumeMounts": [{"name": "bundle", "mountPath": "/share"}]
+        },
+        {
+          "name": "patch",
+          "image": "alpine:3.21",
+          "command": ["sh", "-c"],
+          "args": ["BUNDLE=$(ls /share/*.tar.gz 2>/dev/null | head -1); if [ -z \"$BUNDLE\" ]; then echo 'No bundle'; exit 1; fi; cd /tmp; gunzip -c $BUNDLE > bundle.tar; PREFIX=$(tar tf bundle.tar | head -1 | cut -d/ -f1); mkdir -p $PREFIX; wget -qO $PREFIX/app-info.json %s/api/v1/app/info; wget -qO $PREFIX/license.yaml %s/api/v1/license/info; tar rf bundle.tar $PREFIX/app-info.json $PREFIX/license.yaml; gzip -f bundle.tar; cp bundle.tar.gz $BUNDLE; echo \"Patched $BUNDLE with app-info.json and license.yaml\""],
+          "volumeMounts": [{"name": "bundle", "mountPath": "/share"}]
         }],
         "containers": [{
           "name": "upload",
-          "image": "alpine:3.21",
+          "image": "curlimages/curl:latest",
           "command": ["sh", "-c"],
-          "args": ["apk add --no-cache tar gzip > /dev/null 2>&1; BUNDLE=$(ls /share/*.tar.gz 2>/dev/null | head -1); if [ -z \"$BUNDLE\" ]; then echo 'No bundle found'; exit 1; fi; echo \"Patching bundle with app-info and license\"; mkdir -p /tmp/patch; cd /tmp/patch; tar xzf $BUNDLE; PREFIX=$(ls -d */ | head -1); wget -qO ${PREFIX}app-info.json %s/api/v1/app/info 2>/dev/null; wget -qO ${PREFIX}license.yaml %s/api/v1/license/info 2>/dev/null; tar czf $BUNDLE .; echo \"Uploading $BUNDLE\"; wget -qO- --post-file=$BUNDLE --header='Content-Type: application/gzip' %s/api/v1/supportbundle; echo 'Upload complete'"],
+          "args": ["BUNDLE=$(ls /share/*.tar.gz 2>/dev/null | head -1); if [ -z \"$BUNDLE\" ]; then echo 'No bundle found'; exit 1; fi; echo \"Uploading $BUNDLE\"; curl -sf --data-binary @${BUNDLE} -H 'Content-Type: application/gzip' %s/api/v1/supportbundle && echo 'Upload complete'"],
           "volumeMounts": [{"name": "bundle", "mountPath": "/share"}]
         }]
       }
