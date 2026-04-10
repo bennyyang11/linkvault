@@ -10,8 +10,8 @@ spec:
   statusInformers:
     - deployment/linkvault
     - statefulset/linkvault-postgresql
-    - deployment/linkvault-redis-master
-    - deployment/linkvault-replicated
+    - statefulset/linkvault-redis-master
+    - deployment/linkvault-sdk
   ports:
     - serviceName: linkvault
       servicePort: 8080
