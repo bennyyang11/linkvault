@@ -54,7 +54,7 @@
       "type": "object",
       "properties": {
         "enabled": {
-          "type": "boolean",
+          "type": ["boolean", "string"],
           "description": "Enable ingress resource"
         },
         "host": {
@@ -71,7 +71,7 @@
       "type": "object",
       "properties": {
         "enabled": {
-          "type": "boolean",
+          "type": ["boolean", "string"],
           "description": "Deploy embedded PostgreSQL subchart"
         }
       }
@@ -91,7 +91,7 @@
       "type": "object",
       "properties": {
         "enabled": {
-          "type": "boolean",
+          "type": ["boolean", "string"],
           "description": "Deploy embedded Redis subchart"
         }
       }
