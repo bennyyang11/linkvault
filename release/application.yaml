@@ -8,10 +8,10 @@ spec:
   releaseNotes: ""
   allowRollback: true
   statusInformers:
-    - deployment/linkvault
-    - statefulset/linkvault-postgresql
-    - statefulset/linkvault-redis-master
-    - deployment/linkvault-sdk
+    - default/deployment/linkvault
+    - default/statefulset/linkvault-postgresql
+    - default/statefulset/linkvault-redis-master
+    - default/deployment/linkvault-sdk
   ports:
     - serviceName: linkvault
       servicePort: 8080
