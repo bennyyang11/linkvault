@@ -9,6 +9,10 @@ spec:
   releaseName: linkvault
   namespace: default
   values:
+    image:
+      repository: bennyyang11/linkvault
+    initImage:
+      repository: busybox
     ingress:
       enabled: true
     postgresql:
