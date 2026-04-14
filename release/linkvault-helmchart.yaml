@@ -10,9 +10,9 @@ spec:
   namespace: default
   values:
     image:
-      repository: proxy.link-vaults.com/proxy/linkvault-lynx/bennyyang11/linkvault
+      repository: proxy.link-vaults.com/proxy/linkvault-lynx/docker.io/bennyyang11/linkvault
     initImage:
-      repository: proxy.link-vaults.com/proxy/linkvault-lynx/library/busybox
+      repository: proxy.link-vaults.com/proxy/linkvault-lynx/docker.io/library/busybox
     ingress:
       enabled: false
     service:
@@ -21,7 +21,7 @@ spec:
       enabled: '{{repl ConfigOptionEquals "db_type" "embedded"}}'
       image:
         registry: proxy.link-vaults.com
-        repository: proxy/linkvault-lynx/ecr/bitnami/postgresql
+        repository: proxy/linkvault-lynx/public.ecr.aws/bitnami/postgresql
     externalPostgresql:
       host: '{{repl ConfigOption "external_db_host"}}'
       port: '{{repl ConfigOption "external_db_port"}}'
@@ -32,14 +32,14 @@ spec:
       enabled: '{{repl ConfigOptionEquals "cache_type" "embedded"}}'
       image:
         registry: proxy.link-vaults.com
-        repository: proxy/linkvault-lynx/ecr/bitnami/redis
+        repository: proxy/linkvault-lynx/public.ecr.aws/bitnami/redis
     externalRedis:
       host: '{{repl ConfigOption "external_redis_host"}}'
       port: '{{repl ConfigOption "external_redis_port"}}'
       password: '{{repl ConfigOption "external_redis_password"}}'
   optionalValues:
     - when: '{{repl ConfigOptionEquals "db_type" "embedded"}}'
-      recursiveMerge: false
+      recursiveMerge: true
       values:
         postgresql:
           auth:
@@ -47,5 +47,11 @@ spec:
   builder:
     postgresql:
       enabled: true
+      image:
+        registry: proxy.link-vaults.com
+        repository: proxy/linkvault-lynx/public.ecr.aws/bitnami/postgresql
     redis:
       enabled: true
+      image:
+        registry: proxy.link-vaults.com
+        repository: proxy/linkvault-lynx/public.ecr.aws/bitnami/redis
