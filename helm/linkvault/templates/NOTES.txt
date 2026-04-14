@@ -5,7 +5,7 @@ LinkVault has been deployed!
   Release name:   {{ .Release.Name }}
   Namespace:      {{ .Release.Namespace }}
 
-{{- if .Values.ingress.enabled }}
+{{- if eq (toString .Values.ingress.enabled) "true" }}
 Access the application at:
   https://{{ .Values.ingress.host }}
 {{- else if eq .Values.service.type "NodePort" }}
@@ -20,14 +20,14 @@ Forward the port to access locally:
 {{- end }}
 
 Database:
-{{- if .Values.postgresql.enabled }}
+{{- if eq (toString .Values.postgresql.enabled) "true" }}
   Embedded PostgreSQL is running as {{ include "linkvault.fullname" . }}-postgresql
 {{- else }}
   Using external PostgreSQL at {{ .Values.externalPostgresql.host }}:{{ .Values.externalPostgresql.port }}
 {{- end }}
 
 Cache:
-{{- if .Values.redis.enabled }}
+{{- if eq (toString .Values.redis.enabled) "true" }}
   Embedded Redis is running as {{ include "linkvault.fullname" . }}-redis-master
 {{- else if .Values.externalRedis.host }}
   Using external Redis at {{ .Values.externalRedis.host }}:{{ .Values.externalRedis.port }}

@@ -14,7 +14,9 @@ spec:
     initImage:
       repository: busybox
     ingress:
-      enabled: true
+      enabled: false
+    service:
+      nodePort: 30880
     postgresql:
       enabled: '{{repl ConfigOptionEquals "db_type" "embedded"}}'
     externalPostgresql:

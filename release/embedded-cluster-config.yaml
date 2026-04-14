@@ -13,24 +13,3 @@ spec:
             values:
               maxPods: 110
               maxParallelImagePulls: 5
-  extensions:
-    helmCharts:
-      - chart:
-          name: ingress-nginx
-          chartVersion: "4.11.3"
-        releaseName: ingress-nginx
-        namespace: ingress-nginx
-        values: |
-          controller:
-            service:
-              type: NodePort
-              nodePorts:
-                http: "80"
-                https: "443"
-            image:
-              digest: ""
-              digestChroot: ""
-            admissionWebhooks:
-              patch:
-                image:
-                  digest: ""

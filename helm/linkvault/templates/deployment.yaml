@@ -36,14 +36,14 @@ spec:
             limits:
               cpu: 50m
               memory: 32Mi
-        {{- if or .Values.redis.enabled .Values.externalRedis.host }}
+        {{- if or (eq (toString .Values.redis.enabled) "true") .Values.externalRedis.host }}
         - name: wait-for-redis
           image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
           command: ['sh', '-c']
           args:
             - |
               echo "Waiting for Redis at {{ include "linkvault.redisAddr" . }}..."
-              until nc -z -w3 {{ if .Values.redis.enabled }}{{ include "linkvault.fullname" . }}-redis-master{{ else }}{{ .Values.externalRedis.host }}{{ end }} {{ if .Values.redis.enabled }}6379{{ else }}{{ .Values.externalRedis.port | default "6379" }}{{ end }}; do
+              until nc -z -w3 {{ if eq (toString .Values.redis.enabled) "true" }}{{ include "linkvault.fullname" . }}-redis-master{{ else }}{{ .Values.externalRedis.host }}{{ end }} {{ if eq (toString .Values.redis.enabled) "true" }}6379{{ else }}{{ .Values.externalRedis.port | default "6379" }}{{ end }}; do
                 echo "Redis not ready, retrying in 3s..."
                 sleep 3
               done
@@ -70,7 +70,7 @@ spec:
               value: {{ include "linkvault.postgresHost" . | quote }}
             - name: PGPORT
               value: {{ include "linkvault.postgresPort" . | quote }}
-            {{- if .Values.postgresql.enabled }}
+            {{- if eq (toString .Values.postgresql.enabled) "true" }}
             - name: PGUSER
               value: "postgres"
             - name: PGPASSWORD
@@ -98,13 +98,13 @@ spec:
             # --- Redis ---
             - name: REDIS_ADDR
               value: {{ include "linkvault.redisAddr" . | quote }}
-            {{- if and (not .Values.redis.enabled) .Values.externalRedis.existingSecret }}
+            {{- if and (ne (toString .Values.redis.enabled) "true") .Values.externalRedis.existingSecret }}
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.externalRedis.existingSecret }}
                   key: redis-password
-            {{- else if and (not .Values.redis.enabled) .Values.externalRedis.password }}
+            {{- else if and (ne (toString .Values.redis.enabled) "true") .Values.externalRedis.password }}
             - name: REDIS_PASSWORD
               value: {{ .Values.externalRedis.password | quote }}
             {{- end }}

@@ -52,7 +52,7 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 PostgreSQL hostname — embedded or external.
 */}}
 {{- define "linkvault.postgresHost" -}}
-{{- if .Values.postgresql.enabled }}
+{{- if eq (toString .Values.postgresql.enabled) "true" }}
 {{- printf "%s-postgresql" (include "linkvault.fullname" .) }}
 {{- else }}
 {{- .Values.externalPostgresql.host }}
@@ -63,7 +63,7 @@ PostgreSQL hostname — embedded or external.
 PostgreSQL port.
 */}}
 {{- define "linkvault.postgresPort" -}}
-{{- if .Values.postgresql.enabled }}
+{{- if eq (toString .Values.postgresql.enabled) "true" }}
 {{- "5432" }}
 {{- else }}
 {{- .Values.externalPostgresql.port | default "5432" }}
@@ -74,7 +74,7 @@ PostgreSQL port.
 Redis address — embedded or external.
 */}}
 {{- define "linkvault.redisAddr" -}}
-{{- if .Values.redis.enabled }}
+{{- if eq (toString .Values.redis.enabled) "true" }}
 {{- printf "%s-redis-master:6379" (include "linkvault.fullname" .) }}
 {{- else if .Values.externalRedis.host }}
 {{- printf "%s:%s" .Values.externalRedis.host (.Values.externalRedis.port | default "6379") }}

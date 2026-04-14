@@ -119,7 +119,7 @@ spec:
               message: Kubernetes distribution is supported.
 
     # Storage class (required for PostgreSQL PVC)
-    {{- if .Values.postgresql.enabled }}
+    {{- if eq (toString .Values.postgresql.enabled) "true" }}
     - storageClass:
         checkName: Default Storage Class
         outcomes:
