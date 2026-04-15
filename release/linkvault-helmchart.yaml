@@ -19,9 +19,6 @@ spec:
       nodePort: 30880
     postgresql:
       enabled: '{{repl ConfigOptionEquals "db_type" "embedded"}}'
-      image:
-        registry: proxy.link-vaults.com
-        repository: proxy/linkvault-lynx/public.ecr.aws/bitnami/postgresql
     externalPostgresql:
       host: '{{repl ConfigOption "external_db_host"}}'
       port: '{{repl ConfigOption "external_db_port"}}'
@@ -30,9 +27,6 @@ spec:
       database: '{{repl ConfigOption "external_db_name"}}'
     redis:
       enabled: '{{repl ConfigOptionEquals "cache_type" "embedded"}}'
-      image:
-        registry: proxy.link-vaults.com
-        repository: proxy/linkvault-lynx/public.ecr.aws/bitnami/redis
     externalRedis:
       host: '{{repl ConfigOption "external_redis_host"}}'
       port: '{{repl ConfigOption "external_redis_port"}}'
@@ -47,11 +41,5 @@ spec:
   builder:
     postgresql:
       enabled: true
-      image:
-        registry: proxy.link-vaults.com
-        repository: proxy/linkvault-lynx/public.ecr.aws/bitnami/postgresql
     redis:
       enabled: true
-      image:
-        registry: proxy.link-vaults.com
-        repository: proxy/linkvault-lynx/public.ecr.aws/bitnami/redis
