@@ -38,6 +38,21 @@ spec:
         postgresql:
           auth:
             postgresPassword: '{{repl ConfigOption "embedded_db_password"}}'
+    - when: '{{repl HasLocalRegistry}}'
+      recursiveMerge: true
+      values:
+        image:
+          repository: '{{repl LocalRegistryHost}}/{{repl LocalRegistryNamespace}}/linkvault'
+        initImage:
+          repository: '{{repl LocalRegistryHost}}/{{repl LocalRegistryNamespace}}/busybox'
+        postgresql:
+          image:
+            registry: '{{repl LocalRegistryHost}}'
+            repository: '{{repl LocalRegistryNamespace}}/postgresql'
+        redis:
+          image:
+            registry: '{{repl LocalRegistryHost}}'
+            repository: '{{repl LocalRegistryNamespace}}/redis'
   builder:
     postgresql:
       enabled: true
