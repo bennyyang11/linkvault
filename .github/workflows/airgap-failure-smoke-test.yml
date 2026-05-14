@@ -37,10 +37,11 @@ jobs:
       - name: Set version
         id: version
         run: |
-          # Unique semver per run so the channel always has a fresh release
-          # to airgap-build. github.run_id is monotonic so semver ordering
-          # is preserved across reruns.
-          VERSION="0.0.0-airgap-smoke.${{ github.run_id }}"
+          # Use a deliberately huge major so we sort above any existing
+          # production release on the Unstable channel (which has semver
+          # required). github.run_number is monotonic per repo so reruns
+          # always produce a strictly higher semver than the previous run.
+          VERSION="999.0.${{ github.run_number }}-airgap-smoke"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Package Helm chart
