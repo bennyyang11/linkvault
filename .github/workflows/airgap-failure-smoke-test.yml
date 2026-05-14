@@ -1,0 +1,71 @@
+name: Airgap Failure Surfacing - Smoke Test
+
+# Smoke test for replicatedhq/replicated-actions PR sc-136443. Pins the
+# create-release action to the feature branch so we can verify that, when
+# wait-for-airgap-build is enabled, the action correctly:
+#
+#   - succeeds and emits airgap-status=built / airgap-url for clean builds
+#   - emits airgap-status=warn (without failing) for soft warnings
+#   - fails the workflow and emits airgap-status=failed/cancelled/
+#     failed_with_metadata for terminal failures
+#
+# Trigger from the Actions tab via "Run workflow". Pick the channel to
+# promote to. Defaults are tuned for the linkvault-lynx app's "Unstable"
+# channel which has automatic airgap builds enabled.
+
+on:
+  workflow_dispatch:
+    inputs:
+      promote-channel:
+        description: "Channel to promote the test release to"
+        required: true
+        default: "Unstable"
+      timeout-minutes:
+        description: "Max minutes to wait for the airgap build"
+        required: false
+        default: "10"
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v5
+
+      - name: Set version
+        id: version
+        run: |
+          # Unique semver per run so the channel always has a fresh release
+          # to airgap-build. github.run_id is monotonic so semver ordering
+          # is preserved across reruns.
+          VERSION="0.0.0-airgap-smoke.${{ github.run_id }}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Package Helm chart
+        run: |
+          helm dependency update helm/linkvault/
+          helm package helm/linkvault/ -d release/
+
+      - name: Create release and wait for airgap build
+        id: create
+        # Pinned to the sc-136443 branch on replicatedhq/replicated-actions
+        # so this run exercises the new wait-for-airgap-build behavior.
+        uses: replicatedhq/replicated-actions/create-release@bennyyang/sc-136443/wait-for-airgap-failures
+        with:
+          app-slug: linkvault-lynx
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          yaml-dir: release/
+          promote-channel: ${{ inputs.promote-channel }}
+          version: ${{ steps.version.outputs.version }}
+          wait-for-airgap-build: "true"
+          timeout-minutes: ${{ inputs.timeout-minutes }}
+
+      - name: Print action outputs
+        if: always()
+        run: |
+          echo "airgap-status: ${{ steps.create.outputs.airgap-status }}"
+          echo "airgap-url:    ${{ steps.create.outputs.airgap-url }}"
+          echo "channel-slug:  ${{ steps.create.outputs.channel-slug }}"
+          echo "release-seq:   ${{ steps.create.outputs.release-sequence }}"
